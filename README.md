@@ -1,33 +1,37 @@
-# 🛒 Courses Ensemble — PWA collaborative
+# 🛒 Courses Ensemble — PWA (Supabase)
 
-## 1. Créer le projet Firebase (gratuit)
-1. https://console.firebase.google.com → **Ajouter un projet**.
-2. **Authentication** → Commencer → activer **Adresse e-mail / Mot de passe**.
-3. **Firestore Database** → Créer (mode production, région `eur3`).
-4. **Paramètres du projet** → *Vos applications* → icône **Web `</>`** → copier la config dans `config.js`.
-5. **Paramètres → Cloud Messaging → Certificats Web Push → Générer une paire de clés** → copier dans `vapidKey` de `config.js`.
+Projet Supabase : https://gdaltmiyflupgihectin.supabase.co (clés déjà dans `config.js`)
 
-## 2. Déployer règles + notifications (Firebase CLI)
+## 1. Base de données (obligatoire)
+Supabase → **SQL Editor** → coller tout `supabase/schema.sql` → **Run**.
+
+## 2. Authentification
+Supabase → **Authentication → Providers → Email** : activé.
+- Pour tester vite : désactiver **Confirm email** (sinon l'utilisateur doit cliquer le lien reçu par mail).
+- **Authentication → URL Configuration** : mettre l'URL de votre site (Vercel/Netlify) dans *Site URL*.
+
+## 3. Héberger (gratuit)
+- **Netlify** : https://app.netlify.com/drop → glisser ce dossier (sans `supabase/`).
+- **Vercel** : `npm i -g vercel && vercel --prod` (Framework : *Other*).
+
+## 4. Notifications push (pour les articles urgents)
 ```bash
-npm i -g firebase-tools
-firebase login
-firebase use --add            # choisir votre projet
-firebase deploy --only firestore
-firebase deploy --only functions   # nécessite le plan Blaze (gratuit dans les quotas, carte demandée)
+npx web-push generate-vapid-keys       # -> clé publique + clé privée
 ```
-Sans les Functions, tout marche sauf les notifications push.
+1. Clé **publique** → `vapidPublicKey` dans `config.js`.
+2. Déployer la fonction :
+```bash
+npm i -g supabase
+supabase login
+supabase link --project-ref gdaltmiyflupgihectin
+supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=... VAPID_SUBJECT=mailto:vous@exemple.fr WEBHOOK_SECRET=un-secret-long
+supabase functions deploy notify-urgent --no-verify-jwt
+```
+3. Supabase → **Database → Webhooks → Create**: table `items`, event **Insert**, type **Supabase Edge Functions** → `notify-urgent`, ajouter l'en-tête HTTP `x-webhook-secret` = votre WEBHOOK_SECRET.
 
-## 3. Héberger l'app (Vercel ou Netlify, gratuit)
-- **Netlify** : https://app.netlify.com/drop → glisser le dossier (sans `functions/`) → terminé.
-- **Vercel** : `npm i -g vercel && vercel --prod` dans ce dossier (Framework : *Other*, pas de build).
+## 5. Installer sur le téléphone
+- **iOS (Safari)** : Partager ⬆️ → « Sur l'écran d'accueil » (push : iOS 16.4+, app installée, puis bouton 🔔).
+- **Android (Chrome/Honor)** : bannière « Installer » ou menu ⋮ → « Installer l'application », puis 🔔.
 
-Puis Firebase Console → **Authentication → Paramètres → Domaines autorisés** → ajouter votre domaine (`xxx.vercel.app` / `xxx.netlify.app`).
-
-## 4. Installer sur le téléphone
-- **iOS (Safari)** : Partager ⬆️ → « Sur l'écran d'accueil ». Les push exigent iOS 16.4+ et l'app **installée** ; appuyer sur 🔔 pour autoriser.
-- **Android (Chrome/Honor)** : bannière « Installer » ou menu ⋮ → « Installer l'application ». Appuyer sur 🔔.
-
-## Notes
-- Mot de passe de groupe : stocké haché (SHA-256 + sel), vérifié côté client. Suffisant pour un usage familial/amis ; pour une sécurité stricte, passer par une Cloud Function.
-- Les noms de groupe sont uniques (ils servent d'identifiant).
-- Le service worker est `sw.js` (cache hors-ligne + réception des push).
+## Sécurité
+La clé `sb_publishable_…` est faite pour être publique. Les données sont protégées par les règles RLS : seuls les membres d'un groupe voient ses articles, et les mots de passe de groupe sont hachés (bcrypt) côté serveur.

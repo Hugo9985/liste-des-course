@@ -1,13 +1,7 @@
-// ⚠️ À REMPLIR : Firebase Console > Paramètres du projet > Vos applications (Web)
+// Clé "publishable" : conçue pour être publique dans le navigateur (la sécurité repose sur les règles RLS du schema.sql).
 self.APP = {
-  firebase: {
-    apiKey: "VOTRE_API_KEY",
-    authDomain: "VOTRE_PROJET.firebaseapp.com",
-    projectId: "VOTRE_PROJET",
-    storageBucket: "VOTRE_PROJET.appspot.com",
-    messagingSenderId: "000000000000",
-    appId: "1:000000000000:web:xxxxxxxx"
-  },
-  // Firebase Console > Paramètres > Cloud Messaging > Certificats Web Push > Paire de clés
-  vapidKey: "VOTRE_CLE_VAPID"
+  supabaseUrl: "https://gdaltmiyflupgihectin.supabase.co",
+  supabaseKey: "sb_publishable_v4movyWxZXHctnvE9SvQWw_fgk7_CIM",
+  // Clé PUBLIQUE VAPID (générée avec : npx web-push generate-vapid-keys)
+  vapidPublicKey: "VOTRE_CLE_PUBLIQUE_VAPID"
 };

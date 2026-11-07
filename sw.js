@@ -1,28 +1,6 @@
-const CACHE = 'courses-v1';
+const CACHE = 'courses-v2';
 const SHELL = ['/', '/index.html', '/manifest.json', '/config.js', '/icon-192.png'];
 
-// --- Push (Firebase Cloud Messaging) ---
-try {
-  importScripts('/config.js');
-  importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
-                'https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
-  firebase.initializeApp(self.APP.firebase);
-  firebase.messaging().onBackgroundMessage((p) => {
-    const d = p.data || {};
-    self.registration.showNotification(d.title || '🔴 Article urgent', {
-      body: d.body || '', icon: '/icon-192.png', badge: '/icon-192.png',
-      tag: d.tag || 'urgent', data: { url: '/' }
-    });
-  });
-} catch (e) { console.warn('FCM indisponible', e); }
-
-self.addEventListener('notificationclick', (e) => {
-  e.notification.close();
-  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then((l) =>
-    l.length ? l[0].focus() : clients.openWindow('/')));
-});
-
-// --- Cache hors-ligne (coquille de l'app) ---
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
 });
@@ -32,8 +10,21 @@ self.addEventListener('activate', (e) => {
 });
 self.addEventListener('fetch', (e) => {
   const u = new URL(e.request.url);
-  if (e.request.method !== 'GET' || u.origin !== location.origin) return;
+  if (e.request.method !== 'GET' || u.origin !== location.origin) return; // Supabase = toujours réseau
   e.respondWith(fetch(e.request).then((r) => {
     const copy = r.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); return r;
   }).catch(() => caches.match(e.request).then((m) => m || caches.match('/'))));
+});
+
+// Notifications Web Push
+self.addEventListener('push', (e) => {
+  let d = {}; try { d = e.data.json(); } catch (_) {}
+  e.waitUntil(self.registration.showNotification(d.title || '🔴 Article urgent', {
+    body: d.body || '', icon: '/icon-192.png', badge: '/icon-192.png', tag: d.tag || 'urgent', data: { url: '/' }
+  }));
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then((l) =>
+    l.length ? l[0].focus() : clients.openWindow('/')));
 });

@@ -8,7 +8,6 @@
 <meta name="theme-color" content="#16a34a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Courses">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="icon" href="/icon-192.png">
@@ -29,8 +28,7 @@ button.sec{background:var(--bd);color:var(--tx)} button.full{width:100%}
 .bar{display:flex;gap:8px;align-items:center;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
 .bar select{margin:0;flex:1}.bar button{padding:10px 12px}
 .row{display:flex;gap:8px;align-items:center}.row input[type=text]{margin:0;flex:1}
-.chk{display:flex;gap:8px;align-items:center;margin:8px 0;color:var(--mu)}
-.chk input{width:20px;height:20px}
+.chk{display:flex;gap:8px;align-items:center;margin:8px 0;color:var(--mu)}.chk input{width:20px;height:20px}
 ul{list-style:none;margin:0;padding:0}
 li{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:8px}
 li.urgent{border-color:var(--rd);background:color-mix(in srgb,var(--rd) 9%,var(--card));border-left:5px solid var(--rd)}
@@ -45,8 +43,6 @@ li input{width:22px;height:22px;flex:none}
 </head>
 <body>
 <main>
-
-<!-- AUTH -->
 <section id="auth" class="hidden">
   <h1>🛒 Courses Ensemble</h1>
   <div class="card">
@@ -60,12 +56,11 @@ li input{width:22px;height:22px;flex:none}
   </div>
 </section>
 
-<!-- APP -->
 <section id="app" class="hidden">
   <div class="bar">
     <select id="gSel"></select>
     <button id="gMenu" class="sec" title="Groupes">👥</button>
-    <button id="bell" class="sec hidden" title="Notifications">🔔</button>
+    <button id="bell" class="sec hidden" title="Activer les notifications">🔔</button>
     <button id="out" class="sec" title="Déconnexion">⏻</button>
   </div>
   <div id="install" class="card hidden"></div>
@@ -84,39 +79,30 @@ li input{width:22px;height:22px;flex:none}
 
   <div id="list" class="hidden">
     <div class="card">
-      <div class="row"><input id="iText" type="text" placeholder="Ajouter un article…" maxlength="120">
-      <button id="iGo">＋</button></div>
+      <div class="row"><input id="iText" type="text" placeholder="Ajouter un article…" maxlength="120"><button id="iGo">＋</button></div>
       <label class="chk"><input id="iUrg" type="checkbox"> 🔴 Urgent (prévient le groupe)</label>
     </div>
     <ul id="items"></ul>
     <p id="empty" class="mu hidden" style="text-align:center">Liste vide 🎉</p>
   </div>
 </section>
-
 </main>
 
 <script src="/config.js"></script>
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, updateProfile, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, onSnapshot,
-  query, where, orderBy, arrayUnion, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getMessaging, getToken, isSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const slug = (n) => n.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-const sha = async (p, salt) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + ':' + p)))].map((x) => x.toString(16).padStart(2, '0')).join('');
 const show = (id, on) => $(id).classList.toggle('hidden', !on);
+const gerr = (m) => ($('#gErr').textContent = m || '');
 
-const app = initializeApp(APP.firebase);
-const auth = getAuth(app), db = getFirestore(app);
-await setPersistence(auth, browserLocalPersistence); // connexion automatique
-
+// Session persistante dans localStorage = connexion automatique
+const sb = createClient(APP.supabaseUrl, APP.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage } });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
 
-let mode = 'in', uid = null, groups = [], gid = localStorage.getItem('gid'), unsubG, unsubI;
+let user, groups = [], gid = localStorage.getItem('gid'), chan, mode = 'in';
+const myName = () => user?.user_metadata?.name || 'Anonyme';
 
 // ---------- AUTH ----------
 function setMode(m) {
@@ -125,122 +111,118 @@ function setMode(m) {
 }
 $('#tabIn').onclick = () => setMode('in'); $('#tabUp').onclick = () => setMode('up');
 $('#aGo').onclick = async () => {
-  const email = $('#aEmail').value.trim(), pass = $('#aPass').value, name = $('#aName').value.trim();
-  try {
-    if (mode === 'up') {
-      if (!name) throw { code: 'pseudo' };
-      const c = await createUserWithEmailAndPassword(auth, email, pass);
-      await updateProfile(c.user, { displayName: name });
-      await setDoc(doc(db, 'users', c.user.uid), { name }, { merge: true });
-    } else await signInWithEmailAndPassword(auth, email, pass);
-  } catch (e) {
-    const m = { 'auth/invalid-credential': 'Email ou mot de passe incorrect.', 'auth/email-already-in-use': 'Email déjà utilisé.',
-      'auth/weak-password': 'Mot de passe trop court (6 min.).', 'auth/invalid-email': 'Email invalide.', pseudo: 'Entrez un pseudo.' };
-    $('#aErr').textContent = m[e.code] || e.message;
+  const email = $('#aEmail').value.trim(), password = $('#aPass').value, name = $('#aName').value.trim(), err = $('#aErr');
+  err.textContent = '';
+  if (mode === 'up') {
+    if (!name) return (err.textContent = 'Entrez un pseudo.');
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
+    if (error) return (err.textContent = error.message);
+    if (!data.session) err.textContent = '✉️ Compte créé : confirmez votre email puis connectez-vous.';
+  } else {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) err.textContent = error.message.includes('Invalid') ? 'Email ou mot de passe incorrect.' : error.message;
   }
 };
-$('#out').onclick = () => signOut(auth);
+$('#out').onclick = async () => {
+  try { const sub = await (await navigator.serviceWorker.ready).pushManager.getSubscription();
+    if (sub) await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); } catch (_) {}
+  sb.auth.signOut();
+};
 
-onAuthStateChanged(auth, (u) => {
-  unsubG?.(); unsubI?.();
-  if (!u) { uid = null; show('#app', false); show('#auth', true); return; }
-  uid = u.uid; show('#auth', false); show('#app', true);
-  watchGroups(); initPush();
+sb.auth.onAuthStateChange((_ev, session) => {
+  const u = session?.user || null;
+  if ((u?.id || null) === (user?.id || null) && user !== undefined) { user = u; return; }
+  user = u; setTimeout(onUser, 0);
 });
+user = undefined;
+
+function onUser() {
+  if (chan) { sb.removeChannel(chan); chan = null; }
+  if (!user) { show('#app', false); show('#auth', true); return; }
+  show('#auth', false); show('#app', true);
+  loadGroups(); initPush();
+  // Temps réel : la RLS ne transmet que les articles de nos groupes
+  chan = sb.channel('items-live').on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, () => loadItems()).subscribe();
+}
 
 // ---------- GROUPES ----------
-function watchGroups() {
-  unsubG = onSnapshot(query(collection(db, 'groups'), where('members', 'array-contains', uid)), (snap) => {
-    groups = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.name.localeCompare(b.name));
-    if (!groups.find((g) => g.id === gid)) gid = groups[0]?.id || null;
-    $('#gSel').innerHTML = groups.map((g) => `<option value="${esc(g.id)}" ${g.id === gid ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
-    if (!groups.length) { show('#groups', true); show('#list', false); show('#gSel', false); }
-    else { show('#gSel', true); show('#list', !$('#groups').classList.contains('hidden') ? false : true); watchItems(); }
-  });
+async function loadGroups(selectId) {
+  const { data } = await sb.from('group_members').select('groups(id,name)').eq('user_id', user.id);
+  groups = (data || []).map((r) => r.groups).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+  if (selectId) gid = selectId;
+  if (!groups.find((g) => g.id === gid)) gid = groups[0]?.id || null;
+  $('#gSel').innerHTML = groups.map((g) => `<option value="${g.id}" ${g.id === gid ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
+  show('#gSel', groups.length > 0);
+  if (!groups.length) { show('#groups', true); show('#list', false); }
+  else if (selectId) { show('#groups', false); show('#list', true); }
+  else show('#list', $('#groups').classList.contains('hidden'));
+  loadItems();
 }
-$('#gSel').onchange = (e) => { gid = e.target.value; watchItems(); };
+$('#gSel').onchange = (e) => { gid = e.target.value; loadItems(); };
 $('#gMenu').onclick = () => { const o = $('#groups').classList.contains('hidden'); show('#groups', o); show('#list', !o && !!gid); };
-const gerr = (m) => ($('#gErr').textContent = m);
 
 $('#cGo').onclick = async () => {
-  const name = $('#cName').value.trim(), pass = $('#cPass').value, id = slug(name);
-  if (!id) return gerr('Nom de groupe invalide.');
-  try {
-    if ((await getDoc(doc(db, 'groups', id))).exists()) return gerr('Ce nom de groupe existe déjà.');
-    const salt = crypto.randomUUID(), data = { name, members: [uid], ownerId: uid, createdAt: serverTimestamp(), salt, passHash: pass ? await sha(pass, salt) : null };
-    await setDoc(doc(db, 'groups', id), data);
-    gid = id; localStorage.setItem('gid', id); $('#cName').value = $('#cPass').value = ''; gerr(''); show('#groups', false); show('#list', true);
-  } catch (e) { gerr(e.message); }
+  const { data, error } = await sb.rpc('create_group', { p_name: $('#cName').value, p_password: $('#cPass').value });
+  if (error) return gerr(error.message);
+  $('#cName').value = $('#cPass').value = ''; gerr(); loadGroups(data);
 };
 $('#jGo').onclick = async () => {
-  const id = slug($('#jName').value), pass = $('#jPass').value;
-  try {
-    const s = await getDoc(doc(db, 'groups', id));
-    if (!id || !s.exists()) return gerr('Groupe introuvable.');
-    const g = s.data();
-    if (g.members.includes(uid)) { gid = id; show('#groups', false); show('#list', true); return watchItems(); }
-    if (g.passHash && (await sha(pass, g.salt)) !== g.passHash) return gerr('Mot de passe incorrect.');
-    await updateDoc(doc(db, 'groups', id), { members: arrayUnion(uid) });
-    gid = id; localStorage.setItem('gid', id); $('#jName').value = $('#jPass').value = ''; gerr(''); show('#groups', false); show('#list', true);
-  } catch (e) { gerr(e.message); }
+  const { data, error } = await sb.rpc('join_group', { p_name: $('#jName').value, p_password: $('#jPass').value });
+  if (error) return gerr(error.message);
+  $('#jName').value = $('#jPass').value = ''; gerr(); loadGroups(data);
 };
 
-// ---------- LISTE TEMPS RÉEL ----------
-function watchItems() {
-  unsubI?.(); if (!gid) return; localStorage.setItem('gid', gid);
-  unsubI = onSnapshot(query(collection(db, 'groups', gid, 'items'), orderBy('createdAt', 'desc')), (snap) => {
-    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => (a.done - b.done) || (b.urgent - a.urgent)); // à acheter d'abord, urgents en tête
-    $('#items').innerHTML = items.map((i) => `
-      <li class="${i.urgent && !i.done ? 'urgent' : ''} ${i.done ? 'done' : ''}" data-id="${i.id}">
-        <input type="checkbox" ${i.done ? 'checked' : ''} aria-label="Acheté">
-        <div class="body"><div class="t">${i.urgent ? '<span class="badge">🔴 URGENT</span>' : ''}${esc(i.text)}</div>
-        <div class="by">Ajouté par ${esc(i.authorName)}</div></div>
-        <button class="del" aria-label="Supprimer">🗑</button></li>`).join('');
-    show('#empty', !items.length);
-  });
+// ---------- LISTE ----------
+async function loadItems() {
+  if (!gid) { $('#items').innerHTML = ''; return; }
+  localStorage.setItem('gid', gid);
+  const { data } = await sb.from('items').select('*').eq('group_id', gid).order('created_at', { ascending: false });
+  const items = (data || []).sort((a, b) => (a.done - b.done) || (b.urgent - a.urgent)); // urgents en tête
+  $('#items').innerHTML = items.map((i) => `
+    <li class="${i.urgent && !i.done ? 'urgent' : ''} ${i.done ? 'done' : ''}" data-id="${i.id}">
+      <input type="checkbox" ${i.done ? 'checked' : ''} aria-label="Acheté">
+      <div class="body"><div class="t">${i.urgent ? '<span class="badge">🔴 URGENT</span>' : ''}${esc(i.text)}</div>
+      <div class="by">Ajouté par ${esc(i.author_name)}</div></div>
+      <button class="del" aria-label="Supprimer">🗑</button></li>`).join('');
+  show('#empty', !items.length);
 }
 $('#items').onclick = async (e) => {
-  const li = e.target.closest('li'); if (!li) return; const ref = doc(db, 'groups', gid, 'items', li.dataset.id);
-  if (e.target.matches('input')) await updateDoc(ref, { done: e.target.checked });
-  else if (e.target.closest('.del')) await deleteDoc(ref);
+  const li = e.target.closest('li'); if (!li) return;
+  if (e.target.matches('input')) await sb.from('items').update({ done: e.target.checked }).eq('id', li.dataset.id);
+  else if (e.target.closest('.del')) await sb.from('items').delete().eq('id', li.dataset.id);
+  loadItems();
 };
 async function addItem() {
   const text = $('#iText').value.trim(); if (!text || !gid) return;
-  await addDoc(collection(db, 'groups', gid, 'items'), {
-    text, urgent: $('#iUrg').checked, done: false, authorId: uid,
-    authorName: auth.currentUser.displayName || 'Anonyme', createdAt: serverTimestamp()
-  });
-  $('#iText').value = ''; $('#iUrg').checked = false; $('#iText').focus();
+  const { error } = await sb.from('items').insert({ group_id: gid, text, urgent: $('#iUrg').checked, author_id: user.id, author_name: myName() });
+  if (error) return alert(error.message);
+  $('#iText').value = ''; $('#iUrg').checked = false; $('#iText').focus(); loadItems();
 }
 $('#iGo').onclick = addItem; $('#iText').onkeydown = (e) => e.key === 'Enter' && addItem();
 
 // ---------- NOTIFICATIONS PUSH ----------
-async function initPush() {
-  if (!(await isSupported().catch(() => false))) return;
-  if (Notification.permission === 'granted') return saveToken();
-  if (Notification.permission === 'default') show('#bell', true);
+const b64 = (s) => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+const pushOK = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+function initPush() {
+  if (!pushOK()) return;
+  if (Notification.permission === 'granted') savePush(); else if (Notification.permission === 'default') show('#bell', true);
 }
-async function saveToken() {
+async function savePush() {
   try {
     const reg = await navigator.serviceWorker.ready;
-    const token = await getToken(getMessaging(app), { vapidKey: APP.vapidKey, serviceWorkerRegistration: reg });
-    if (token) await setDoc(doc(db, 'users', uid), { tokens: arrayUnion(token), name: auth.currentUser.displayName || '' }, { merge: true });
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(APP.vapidPublicKey) });
+    await sb.from('push_subscriptions').upsert({ user_id: user.id, endpoint: sub.endpoint, subscription: sub.toJSON() }, { onConflict: 'endpoint' });
   } catch (e) { console.warn('Push:', e); }
 }
-$('#bell').onclick = async () => { // geste utilisateur obligatoire sur iOS
-  if (await Notification.requestPermission() === 'granted') { show('#bell', false); saveToken(); }
+$('#bell').onclick = async () => { // geste utilisateur obligatoire (iOS)
+  if (await Notification.requestPermission() === 'granted') { show('#bell', false); savePush(); }
 };
 
 // ---------- AIDE INSTALLATION ----------
-const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-if (!standalone) {
-  const box = $('#install'); let dp;
-  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
-    box.innerHTML = 'Pour installer : appuyez sur <b>Partager ⬆️</b> puis <b>« Sur l\'écran d\'accueil »</b>'; show('#install', true);
-  }
-  addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); dp = e;
-    box.innerHTML = '<b>📲 Installer l\'application</b>'; box.onclick = () => dp.prompt(); show('#install', true); });
+if (!(matchMedia('(display-mode: standalone)').matches || navigator.standalone)) {
+  const box = $('#install');
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) { box.innerHTML = 'Pour installer : <b>Partager ⬆️</b> puis <b>« Sur l\'écran d\'accueil »</b>'; show('#install', true); }
+  addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); box.innerHTML = '<b>📲 Installer l\'application</b>'; box.onclick = () => e.prompt(); show('#install', true); });
 }
 </script>
 </body>
