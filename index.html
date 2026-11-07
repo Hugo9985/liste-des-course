@@ -260,7 +260,13 @@ const fmt = (d) => {
 async function loadItems() {
   if (!gid) { items = []; return render(); }
   localStorage.setItem('gid', gid);
-  const { data, error } = await sb.from('items').select('*, item_views(user_id,user_name)').eq('group_id', gid).order('created_at', { ascending: false });
+  const q = (cols) => sb.from('items').select(cols).eq('group_id', gid).order('created_at', { ascending: false });
+  // Jointure explicite via la clé étrangère nommée ; si elle échoue, on lit les articles sans "Vu par"
+  let { data, error } = await q('*, item_views!item_views_item_id_fkey(user_id,user_name)');
+  if (error) {
+    console.warn('Jointure item_views indisponible, lecture simple :', error.message);
+    ({ data, error } = await q('*'));
+  }
   if (error) return fail('Lecture des articles impossible : ' + error.message, error);
   appErr(); items = data || [];
   pend = pend.filter((p) => !items.some((i) => i.id === p.id));
@@ -313,6 +319,7 @@ $('#items').onclick = async (e) => {
 // "Vu par" : on enregistre les articles affichés à l'écran
 async function markSeen() {
   if (document.visibilityState !== 'visible' || !gid) return;
+  if (!items.some((i) => 'item_views' in i)) return;
   const rows = items.filter((i) => i.author_id !== user.id && !(i.item_views || []).some((v) => v.user_id === user.id))
     .map((i) => ({ item_id: i.id, user_id: user.id, user_name: myName() }));
   if (!rows.length) return;
