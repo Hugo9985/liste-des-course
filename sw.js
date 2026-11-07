@@ -1,4 +1,4 @@
-const CACHE = 'courses-v3';
+const CACHE = 'courses-v4';
 const SHELL = ['/', '/index.html', '/manifest.json', '/config.js', '/icon-192.png'];
 
 self.addEventListener('install', (e) => {
@@ -20,7 +20,8 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('push', (e) => {
   let d = {}; try { d = e.data.json(); } catch (_) {}
   e.waitUntil(self.registration.showNotification(d.title || '🔴 Article urgent', {
-    body: d.body || '', icon: '/icon-192.png', badge: '/icon-192.png', tag: d.tag || 'urgent', data: { url: '/' }
+    body: d.body || '', icon: '/icon-192.png', badge: '/icon-192.png', tag: d.tag || 'urgent', data: { url: '/' },
+    vibrate: d.urgent ? [200, 100, 200, 100, 200] : [80, 50, 80], requireInteraction: !!d.urgent
   }));
 });
 self.addEventListener('notificationclick', (e) => {

@@ -37,3 +37,8 @@ supabase functions deploy notify-urgent --no-verify-jwt
 
 ## Sécurité
 La clé `sb_publishable_…` est faite pour être publique. Les données sont protégées par les règles RLS : seuls les membres d'un groupe voient ses articles, et les mots de passe de groupe sont hachés (bcrypt) côté serveur.
+
+## Mise à jour v4
+1. SQL Editor → coller `supabase/update_v4.sql` → Run.
+2. `supabase functions deploy notify-urgent --no-verify-jwt` (push à chaque nouvel article).
+3. Redéployer le dossier (Netlify/Vercel), puis réinstaller l'app sur l'écran d'accueil.

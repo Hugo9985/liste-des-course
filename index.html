@@ -12,83 +12,122 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="icon" href="/icon-192.png">
 <style>
-:root{--bg:#f4f7f5;--card:#fff;--tx:#14221a;--mu:#6b7a72;--pr:#16a34a;--rd:#dc2626;--bd:#e0e8e3}
-@media(prefers-color-scheme:dark){:root{--bg:#0f1713;--card:#18231d;--tx:#e8f1ec;--mu:#8ea397;--bd:#27362d}}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,sans-serif}
-body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-main{max-width:560px;margin:0 auto;padding:12px}
+:root{--bg:#f2f2f7;--card:#fff;--tx:#111;--mu:#8a8a8e;--pr:#16a34a;--rd:#ff3b30;--bd:rgba(60,60,67,.12);--glass:rgba(242,242,247,.82);--sh:0 2px 12px rgba(0,0,0,.06)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b0f0d;--card:#1a211d;--tx:#f2f2f7;--mu:#98a29c;--bd:rgba(255,255,255,.09);--glass:rgba(11,15,13,.82);--sh:0 2px 12px rgba(0,0,0,.4)}}
+:root[data-theme=dark]{--bg:#0b0f0d;--card:#1a211d;--tx:#f2f2f7;--mu:#98a29c;--bd:rgba(255,255,255,.09);--glass:rgba(11,15,13,.82);--sh:0 2px 12px rgba(0,0,0,.4)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,system-ui,sans-serif}
+main{max-width:560px;margin:0 auto;padding:0 14px 130px}
 .hidden{display:none!important}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
-h1{font-size:1.4rem;margin:8px 0 12px} h2{font-size:1.05rem;margin:0 0 10px}
-input[type=text],input[type=email],input[type=password],select{width:100%;padding:12px;margin:0 0 8px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx);font-size:16px}
-button{font:inherit;border:0;border-radius:10px;padding:12px 16px;background:var(--pr);color:#fff;font-weight:600;cursor:pointer}
-button.sec{background:var(--bd);color:var(--tx)} button.full{width:100%}
-.tabs{display:flex;gap:8px;margin-bottom:10px}.tabs button{flex:1;background:var(--bd);color:var(--tx)}.tabs button.on{background:var(--pr);color:#fff}
-.bar{display:flex;gap:8px;align-items:center;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5}
-.bar select{margin:0;flex:1}.bar button{padding:10px 12px}
-.row{display:flex;gap:8px;align-items:center}.row input[type=text]{margin:0;flex:1}
-.chk{display:flex;gap:8px;align-items:center;margin:8px 0;color:var(--mu)}.chk input{width:20px;height:20px}
-ul{list-style:none;margin:0;padding:0}
-li{display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:8px}
-li.urgent{border-color:var(--rd);background:color-mix(in srgb,var(--rd) 9%,var(--card));border-left:5px solid var(--rd)}
-li.done .t{text-decoration:line-through;opacity:.5}
-li input{width:22px;height:22px;flex:none}
-.body{flex:1;min-width:0}.t{word-break:break-word}.by{font-size:.8rem;color:var(--mu)}
-.badge{background:var(--rd);color:#fff;font-size:.7rem;font-weight:700;border-radius:6px;padding:2px 6px;margin-right:6px}
-.del{background:none;color:var(--mu);padding:6px 10px;font-size:1.1rem}
-.err{color:var(--rd);min-height:1.2em;font-size:.9rem}.mu{color:var(--mu);font-size:.9rem}
-#install{background:var(--pr);color:#fff;text-align:center}
+.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--sh)}
+h1{font-size:2rem;margin:0;letter-spacing:-.5px}h2{font-size:1.1rem;margin:0 0 10px}
+input[type=text],input[type=email],input[type=password],select{width:100%;padding:14px;margin:0 0 10px;border:0;border-radius:12px;background:var(--bg);color:var(--tx);font-size:16px;outline:0}
+input:focus{box-shadow:0 0 0 2px var(--pr)}
+button{font:inherit;border:0;border-radius:14px;padding:13px 18px;background:var(--pr);color:#fff;font-weight:600;cursor:pointer;transition:transform .12s,opacity .2s}
+button:active{transform:scale(.94)}button:disabled{opacity:.5}
+button.sec{background:var(--card);color:var(--tx);box-shadow:var(--sh)}button.full{width:100%}
+.hero{text-align:center;padding:64px 0 22px}.hero .logo{font-size:3.4rem;display:block;margin-bottom:6px}
+.seg{display:flex;background:var(--bg);border-radius:12px;padding:3px;margin-bottom:14px}
+.seg button{flex:1;background:none;color:var(--mu);box-shadow:none;border-radius:10px;padding:9px}
+.seg button.on{background:var(--card);color:var(--tx);box-shadow:var(--sh)}
+.top{position:sticky;top:0;z-index:20;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 10px) 14px 8px;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
+.top .r{display:flex;align-items:center;gap:8px}
+#gSel{margin:0;padding:4px 0;background:none;font-size:1.7rem;font-weight:800;letter-spacing:-.5px;flex:1;min-width:0;appearance:none;-webkit-appearance:none;text-overflow:ellipsis}
+.ib{width:40px;height:40px;padding:0;border-radius:50%;font-size:1.05rem;flex:none}
+#count{color:var(--mu);font-size:.85rem;margin:0 0 4px}
+ul{list-style:none;margin:12px 0 0;padding:0}
+li{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--sh);max-height:140px;transition:background .3s,opacity .3s}
+li.in{animation:in .4s cubic-bezier(.2,.9,.3,1.25)}li.out{animation:out .26s ease forwards;overflow:hidden}
+@keyframes in{from{opacity:0;transform:translateY(-12px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes out{to{opacity:0;transform:translateX(50px);max-height:0;margin:0;padding-top:0;padding-bottom:0}}
+li.urgent{background:linear-gradient(90deg,color-mix(in srgb,var(--rd) 14%,var(--card)),var(--card));box-shadow:inset 4px 0 0 var(--rd),var(--sh)}
+li.done{opacity:.55}li.done .t{text-decoration:line-through}
+.ck{width:28px;height:28px;padding:0;flex:none;border-radius:50%;background:none;border:2px solid var(--bd);box-shadow:none;border-color:var(--mu)}
+li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{content:"✓";color:#fff;font-size:.95rem}
+.bd{flex:1;min-width:0}.t{word-break:break-word;font-weight:500}
+.meta,.seen{font-size:.76rem;color:var(--mu)}.seen{margin-top:1px}
+.badge{display:inline-block;background:linear-gradient(135deg,#ff453a,#d70015);color:#fff;font-size:.66rem;font-weight:800;letter-spacing:.4px;border-radius:99px;padding:2px 8px;margin-right:7px;vertical-align:1px;animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.5)}70%,100%{box-shadow:0 0 0 7px rgba(255,59,48,0)}}
+.side{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.tk{color:var(--mu);font-size:.78rem;letter-spacing:-3px}.tk.ok{color:#34c759}
+.del{background:none;box-shadow:none;color:var(--mu);padding:2px 6px;font-size:.95rem}.retry{background:var(--rd);padding:5px 9px;font-size:.72rem;border-radius:9px}
+.empty{text-align:center;color:var(--mu);padding:40px 0}.empty b{display:block;font-size:2.6rem}
+#dbg{text-align:center;color:var(--mu);font-size:.7rem;opacity:.6}
+#composer{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:10px 14px calc(env(safe-area-inset-bottom) + 10px);background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
+#composer form{max-width:560px;margin:0 auto;display:flex;gap:8px;align-items:center}
+#iText{margin:0;flex:1;border-radius:99px;padding:13px 18px;background:var(--card);box-shadow:var(--sh)}
+.chip input{display:none}.chip span{display:block;padding:11px 13px;border-radius:99px;background:var(--card);box-shadow:var(--sh);font-size:.85rem;font-weight:700;color:var(--mu);cursor:pointer;transition:.2s}
+.chip input:checked+span{background:var(--rd);color:#fff}
+#iGo{width:46px;height:46px;padding:0;border-radius:50%;font-size:1.4rem;flex:none}
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .25s}
+.sheet.open{opacity:1;pointer-events:auto}
+.panel{position:absolute;left:0;right:0;bottom:0;max-width:560px;margin:auto;background:var(--bg);border-radius:24px 24px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom) + 14px);transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.9,.3,1);max-height:90vh;overflow:auto}
+.open .panel{transform:none}.grab{width:40px;height:5px;border-radius:9px;background:var(--bd);margin:0 auto 12px}
+.err{color:var(--rd);font-size:.88rem;min-height:1.1em;margin:4px 0}.mu{color:var(--mu);font-size:.88rem}
+#install{background:var(--pr);color:#fff;text-align:center;margin-top:8px}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translate(-50%,-90px);z-index:50;background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:.88rem;max-width:90%;transition:transform .4s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#toast.on{transform:translate(-50%,0)}
 </style>
 </head>
 <body>
+<div id="toast"></div>
 <main>
 <section id="auth" class="hidden">
-  <h1>🛒 Courses Ensemble</h1>
+  <div class="hero"><span class="logo">🛒</span><h1>Courses Ensemble</h1><p class="mu">La liste de courses, à plusieurs.</p></div>
   <div class="card">
-    <div class="tabs"><button id="tabIn" class="on">Connexion</button><button id="tabUp">Inscription</button></div>
+    <div class="seg"><button id="tabIn" class="on">Connexion</button><button id="tabUp">Inscription</button></div>
     <input id="aName" type="text" placeholder="Nom / Pseudo" class="hidden" autocomplete="nickname">
     <input id="aEmail" type="email" placeholder="Email" autocomplete="email">
     <input id="aPass" type="password" placeholder="Mot de passe (6 car. min.)" autocomplete="current-password">
-    <p class="mu">✔ Vous restez connecté, même après fermeture de l'app.</p>
     <button id="aGo" class="full">Se connecter</button>
     <p id="aErr" class="err"></p>
+    <p class="mu" style="text-align:center;margin:0">Vous restez connecté, même après fermeture de l'app.</p>
   </div>
 </section>
 
 <section id="app" class="hidden">
-  <div class="bar">
-    <select id="gSel"></select>
-    <button id="gMenu" class="sec" title="Groupes">👥</button>
-    <button id="bell" class="sec hidden" title="Activer les notifications">🔔</button>
-    <button id="out" class="sec" title="Déconnexion">⏻</button>
+  <div class="top">
+    <div class="r">
+      <select id="gSel"></select>
+      <button id="gMenu" class="sec ib" title="Groupes">👥</button>
+      <button id="bell" class="sec ib hidden" title="Activer les notifications">🔔</button>
+      <button id="snd" class="sec ib" title="Son">🔊</button>
+      <button id="theme" class="sec ib" title="Thème">🌗</button>
+      <button id="out" class="sec ib" title="Déconnexion">⏻</button>
+    </div>
+    <p id="count"></p>
   </div>
   <p id="appErr" class="err"></p>
   <div id="install" class="card hidden"></div>
 
-  <div id="groups" class="hidden">
-    <div class="card"><h2>Créer un groupe</h2>
-      <input id="cName" type="text" placeholder="Nom du groupe">
-      <input id="cPass" type="password" placeholder="Mot de passe (optionnel)">
-      <button id="cGo" class="full">Créer</button></div>
-    <div class="card"><h2>Rejoindre un groupe</h2>
-      <input id="jName" type="text" placeholder="Nom du groupe">
-      <input id="jPass" type="password" placeholder="Mot de passe (si requis)">
-      <button id="jGo" class="full">Rejoindre</button></div>
-    <p id="gErr" class="err"></p>
-  </div>
-
   <div id="list" class="hidden">
-    <form id="addForm" class="card" autocomplete="off">
-      <div class="row"><input id="iText" type="text" placeholder="Ajouter un article…" maxlength="120" enterkeyhint="send"><button id="iGo" type="submit">＋</button></div>
-      <label class="chk"><input id="iUrg" type="checkbox"> 🔴 Urgent (prévient le groupe)</label>
-    </form>
     <ul id="items"></ul>
-    <p id="empty" class="mu hidden" style="text-align:center">Liste vide 🎉</p>
-    <p id="dbg" class="mu" style="text-align:center;font-size:.75rem"></p>
+    <div id="empty" class="empty hidden"><b>🎉</b>Liste vide, rien à acheter !</div>
+    <p id="dbg"></p>
+    <div id="composer">
+      <form id="addForm" autocomplete="off">
+        <input id="iText" type="text" placeholder="Ajouter un article…" maxlength="120" enterkeyhint="send">
+        <label class="chip"><input id="iUrg" type="checkbox"><span>🔴 Urgent</span></label>
+        <button id="iGo" type="submit" aria-label="Ajouter">↑</button>
+      </form>
+    </div>
   </div>
 </section>
 </main>
+
+<div id="sheet" class="sheet"><div class="panel">
+  <div class="grab"></div>
+  <div class="card"><h2>Créer un groupe</h2>
+    <input id="cName" type="text" placeholder="Nom du groupe">
+    <input id="cPass" type="password" placeholder="Mot de passe (optionnel)">
+    <button id="cGo" class="full">Créer</button></div>
+  <div class="card"><h2>Rejoindre un groupe</h2>
+    <input id="jName" type="text" placeholder="Nom du groupe">
+    <input id="jPass" type="password" placeholder="Mot de passe (si requis)">
+    <button id="jGo" class="full">Rejoindre</button></div>
+  <p id="gErr" class="err"></p>
+  <button id="sClose" class="sec full">Fermer</button>
+</div></div>
 
 <script src="/config.js"></script>
 <script type="module">
@@ -99,18 +138,39 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;'
 const show = (id, on) => $(id).classList.toggle('hidden', !on);
 const gerr = (m) => ($('#gErr').textContent = m || '');
 const appErr = (m) => ($('#appErr').textContent = m || '');
-const fail = (msg, err) => { console.error(msg, err); appErr(msg); alert(msg); };
-const dbg = () => ($('#dbg').textContent = 'v3 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun') + ' · connecté : ' + (user ? 'oui' : 'non'));
+const toast = (m) => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 3200); };
+const fail = (msg, err) => { console.error(msg, err); appErr(msg); toast('⚠️ ' + msg); };
 
-// Session persistante dans localStorage = connexion automatique
 const sb = createClient(APP.supabaseUrl, APP.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage } });
 if ('serviceWorker' in navigator) {
   if (navigator.serviceWorker.controller) navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });
   navigator.serviceWorker.register('/sw.js').then((r) => r.update());
 }
 
-let user, groups = [], gid = localStorage.getItem('gid'), chan, mode = 'in';
+let user, groups = [], items = [], pend = [], gid = localStorage.getItem('gid'), chan, mode = 'in', first = true, muted = localStorage.getItem('mute') === '1';
 const myName = () => user?.user_metadata?.name || 'Anonyme';
+const dbg = () => ($('#dbg').textContent = 'v4 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
+
+// ---------- THÈME & SON ----------
+const root = document.documentElement;
+if (localStorage.getItem('theme')) root.dataset.theme = localStorage.getItem('theme');
+$('#theme').onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark'; localStorage.setItem('theme', root.dataset.theme);
+};
+$('#snd').textContent = muted ? '🔇' : '🔊';
+$('#snd').onclick = () => { muted = !muted; localStorage.setItem('mute', muted ? '1' : '0'); $('#snd').textContent = muted ? '🔇' : '🔊'; };
+let ac; addEventListener('pointerdown', () => { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume?.(); }, { once: true });
+function buzz(urgent) {
+  navigator.vibrate?.(urgent ? [200, 80, 200, 80, 200] : [70, 40, 70]); // Android ; iOS ne supporte pas vibrate
+  if (!ac || muted) return;
+  const t = ac.currentTime;
+  (urgent ? [[988, 0], [988, .18], [1319, .36]] : [[880, 0], [1175, .12]]).forEach(([f, d]) => {
+    const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f;
+    g.gain.setValueAtTime(.0001, t + d); g.gain.exponentialRampToValueAtTime(.14, t + d + .02); g.gain.exponentialRampToValueAtTime(.0001, t + d + .22);
+    o.connect(g).connect(ac.destination); o.start(t + d); o.stop(t + d + .25);
+  });
+}
 
 // ---------- AUTH ----------
 function setMode(m) {
@@ -136,7 +196,6 @@ $('#out').onclick = async () => {
     if (sub) await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); } catch (_) {}
   sb.auth.signOut();
 };
-
 sb.auth.onAuthStateChange((_ev, session) => {
   const u = session?.user || null;
   if ((u?.id || null) === (user?.id || null) && user !== undefined) { user = u; return; }
@@ -144,17 +203,30 @@ sb.auth.onAuthStateChange((_ev, session) => {
 });
 user = undefined;
 
+let lt; const load = () => { clearTimeout(lt); lt = setTimeout(loadItems, 120); };
 function onUser() {
-  dbg();
   if (chan) { sb.removeChannel(chan); chan = null; }
   if (!user) { show('#app', false); show('#auth', true); return; }
-  show('#auth', false); show('#app', true);
-  loadGroups(); initPush();
-  // Temps réel : la RLS ne transmet que les articles de nos groupes
-  chan = sb.channel('items-live').on('postgres_changes', { event: '*', schema: 'public', table: 'items' }, () => loadItems()).subscribe();
+  show('#auth', false); show('#app', true); loadGroups(); initPush();
+  chan = sb.channel('live')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'items' }, onInsert)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'items' }, load)
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'items' }, load)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'item_views' }, load)
+    .subscribe();
+}
+// Un autre membre ajoute un article -> vibration + son
+function onInsert(p) {
+  const n = p.new;
+  if (n.author_id !== user.id && groups.some((g) => g.id === n.group_id)) {
+    buzz(n.urgent);
+    if (n.group_id !== gid || document.hidden) toast(`${n.urgent ? '🔴 ' : '🛒 '}${n.author_name} : ${n.text}`);
+  }
+  load();
 }
 
 // ---------- GROUPES ----------
+const sheet = (o) => { $('#sheet').classList.toggle('open', o); if (o) gerr(); };
 async function loadGroups(selectId) {
   const { data, error } = await sb.from('group_members').select('groups(id,name)').eq('user_id', user.id);
   if (error) fail('Lecture des groupes impossible : ' + error.message, error);
@@ -162,83 +234,114 @@ async function loadGroups(selectId) {
   if (selectId) gid = selectId;
   if (!groups.find((g) => g.id === gid)) gid = groups[0]?.id || null;
   $('#gSel').innerHTML = groups.map((g) => `<option value="${g.id}" ${g.id === gid ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
-  show('#gSel', groups.length > 0);
-  if (!groups.length) { show('#groups', true); show('#list', false); }
-  else if (selectId) { show('#groups', false); show('#list', true); }
-  else show('#list', $('#groups').classList.contains('hidden'));
-  loadItems();
+  show('#gSel', groups.length > 0); show('#list', groups.length > 0);
+  if (!groups.length) { $('#count').textContent = 'Créez ou rejoignez un groupe'; sheet(true); } else if (selectId) sheet(false);
+  first = true; $('#items').innerHTML = ''; loadItems();
 }
-$('#gSel').onchange = (e) => { gid = e.target.value; loadItems(); };
-$('#gMenu').onclick = () => { const o = $('#groups').classList.contains('hidden'); show('#groups', o); show('#list', !o && !!gid); };
-
+$('#gSel').onchange = (e) => { gid = e.target.value; items = []; first = true; $('#items').innerHTML = ''; loadItems(); };
+$('#gMenu').onclick = () => sheet(true); $('#sClose').onclick = () => sheet(false);
+$('#sheet').onclick = (e) => { if (e.target.id === 'sheet') sheet(false); };
 $('#cGo').onclick = async () => {
   const { data, error } = await sb.rpc('create_group', { p_name: $('#cName').value, p_password: $('#cPass').value });
   if (error) return gerr(error.message);
-  $('#cName').value = $('#cPass').value = ''; gerr(); loadGroups(data);
+  $('#cName').value = $('#cPass').value = ''; loadGroups(data);
 };
 $('#jGo').onclick = async () => {
   const { data, error } = await sb.rpc('join_group', { p_name: $('#jName').value, p_password: $('#jPass').value });
   if (error) return gerr(error.message);
-  $('#jName').value = $('#jPass').value = ''; gerr(); loadGroups(data);
+  $('#jName').value = $('#jPass').value = ''; loadGroups(data);
 };
 
 // ---------- LISTE ----------
+const fmt = (d) => {
+  const x = new Date(d), t = x.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return x.toDateString() === new Date().toDateString() ? 'à ' + t : 'le ' + x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' à ' + t;
+};
 async function loadItems() {
-  if (!gid) { $('#items').innerHTML = ''; return; }
+  if (!gid) { items = []; return render(); }
   localStorage.setItem('gid', gid);
-  const { data, error } = await sb.from('items').select('*').eq('group_id', gid).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('items').select('*, item_views(user_id,user_name)').eq('group_id', gid).order('created_at', { ascending: false });
   if (error) return fail('Lecture des articles impossible : ' + error.message, error);
-  appErr();
-  const items = (data || []).sort((a, b) => (a.done - b.done) || (b.urgent - a.urgent)); // urgents en tête
-  $('#items').innerHTML = items.map((i) => `
-    <li class="${i.urgent && !i.done ? 'urgent' : ''} ${i.done ? 'done' : ''}" data-id="${i.id}">
-      <input type="checkbox" ${i.done ? 'checked' : ''} aria-label="Acheté">
-      <div class="body"><div class="t">${i.urgent ? '<span class="badge">🔴 URGENT</span>' : ''}${esc(i.text)}</div>
-      <div class="by">Ajouté par ${esc(i.author_name)}</div></div>
-      <button class="del" aria-label="Supprimer">🗑</button></li>`).join('');
-  show('#empty', !items.length); dbg();
+  appErr(); items = data || [];
+  pend = pend.filter((p) => !items.some((i) => i.id === p.id));
+  render(); first = false; markSeen();
+}
+function render() {
+  const ids = new Set(items.map((i) => i.id));
+  const all = [...pend.filter((p) => p.group_id === gid && !ids.has(p.id)), ...items]
+    .sort((a, b) => (!!a.done - !!b.done) || (b.urgent - a.urgent) || (new Date(b.created_at) - new Date(a.created_at)));
+  const ul = $('#items'), keep = new Set(all.map((i) => i.id));
+  [...ul.children].forEach((li) => { if (!keep.has(li.dataset.id) && !li.classList.contains('out')) { li.classList.add('out'); setTimeout(() => li.remove(), 260); } });
+  let prev = null;
+  all.forEach((i) => {
+    const mine = i.author_id === user.id;
+    const seen = (i.item_views || []).filter((v) => v.user_id !== user.id).map((v) => v.user_name);
+    const sig = JSON.stringify([i.text, i.urgent, i.done, i.state || '', seen]);
+    let li = ul.querySelector(`[data-id="${i.id}"]:not(.out)`);
+    if (!li) { li = document.createElement('li'); li.dataset.id = i.id; if (!first) li.classList.add('in'); }
+    if (li.dataset.sig !== sig) {
+      li.dataset.sig = sig; li.classList.toggle('urgent', !!i.urgent && !i.done); li.classList.toggle('done', !!i.done);
+      const tick = !mine ? '' : i.state === 'sending' ? '<span class="tk" title="Envoi…">✓</span>'
+        : i.state === 'error' ? '<button class="retry">⚠ Réessayer</button>' : '<span class="tk ok" title="Enregistré">✓✓</span>';
+      const seenTxt = seen.length ? `👁 Vu par ${esc(seen.join(', '))}` : mine && !i.state ? 'Pas encore vu' : '';
+      li.innerHTML = `<button class="ck" aria-label="Acheté"></button>
+        <div class="bd"><div class="t">${i.urgent ? '<span class="badge">URGENT</span>' : ''}${esc(i.text)}</div>
+        <div class="meta">${esc(mine ? 'Vous' : i.author_name)} · Ajouté ${fmt(i.created_at)}</div>
+        ${seenTxt ? `<div class="seen">${seenTxt}</div>` : ''}</div>
+        <div class="side">${tick}<button class="del" aria-label="Supprimer">✕</button></div>`;
+    }
+    ul.insertBefore(li, prev ? prev.nextSibling : ul.firstChild); prev = li;
+  });
+  const todo = all.filter((i) => !i.done).length, done = all.length - todo;
+  if (gid) $('#count').textContent = `${todo} à acheter${done ? ` · ${done} acheté${done > 1 ? 's' : ''}` : ''}`;
+  show('#empty', !all.length); dbg();
 }
 $('#items').onclick = async (e) => {
-  const li = e.target.closest('li'); if (!li) return;
-  if (e.target.matches('input')) await sb.from('items').update({ done: e.target.checked }).eq('id', li.dataset.id);
-  else if (e.target.closest('.del')) await sb.from('items').delete().eq('id', li.dataset.id);
-  loadItems();
+  const li = e.target.closest('li'); if (!li) return; const id = li.dataset.id;
+  if (e.target.closest('.ck')) {
+    const it = items.find((x) => x.id === id); if (!it) return;
+    it.done = !it.done; render();
+    const { error } = await sb.from('items').update({ done: it.done }).eq('id', id);
+    if (error) fail('Modification impossible : ' + error.message, error); load();
+  } else if (e.target.closest('.del')) {
+    pend = pend.filter((p) => p.id !== id); items = items.filter((x) => x.id !== id); render();
+    const { error } = await sb.from('items').delete().eq('id', id);
+    if (error) fail('Suppression impossible : ' + error.message, error); load();
+  } else if (e.target.closest('.retry')) { const p = pend.find((x) => x.id === id); if (p) send(p); }
 };
-async function addItem() {
-  const input = $('#iText'), btn = $('#iGo');
-  const text = input.value.trim();                       // valeur lue AVANT l'envoi
-  if (!text) return;
-  if (!gid) return fail("Aucun groupe sélectionné : créez ou rejoignez un groupe (bouton 👥).");
-  btn.disabled = true;
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return fail('Session expirée : reconnectez-vous.');
-    const row = {
-      group_id: gid,                                     // colonnes obligatoires de la table items
-      text,
-      urgent: $('#iUrg').checked,
-      author_id: session.user.id,
-      author_name: session.user.user_metadata?.name || 'Anonyme'
-    };
-    const { error } = await sb.from('items').insert(row);
-    if (error) return fail('Ajout impossible : ' + error.message, error);
-    input.value = ''; $('#iUrg').checked = false;       // réinitialisation après succès
-    appErr(); input.focus();
-    await loadItems();
-  } catch (e) {
-    fail('Erreur JavaScript : ' + (e.message || e), e);
-  } finally {
-    btn.disabled = false;
-  }
+
+// "Vu par" : on enregistre les articles affichés à l'écran
+async function markSeen() {
+  if (document.visibilityState !== 'visible' || !gid) return;
+  const rows = items.filter((i) => i.author_id !== user.id && !(i.item_views || []).some((v) => v.user_id === user.id))
+    .map((i) => ({ item_id: i.id, user_id: user.id, user_name: myName() }));
+  if (!rows.length) return;
+  const { error } = await sb.from('item_views').upsert(rows, { onConflict: 'item_id,user_id', ignoreDuplicates: true });
+  if (error) console.error('Vu par :', error);
 }
-// <form> : le bouton ＋ ET la touche Entrée appellent submit ; preventDefault évite le rechargement
+document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+
+// ---------- AJOUT (envoi optimiste : ✓ gris -> ✓✓ vert) ----------
+async function send(p) {
+  p.state = 'sending'; render();
+  const { error } = await sb.from('items').insert({ id: p.id, group_id: p.group_id, text: p.text, urgent: p.urgent, author_id: p.author_id, author_name: p.author_name });
+  if (error) { p.state = 'error'; render(); return fail('Ajout impossible : ' + error.message, error); }
+  p.state = 'sent'; render(); load();
+}
+function addItem() {
+  const input = $('#iText'), text = input.value.trim();
+  if (!text) return;
+  if (!gid || !user) return fail('Aucun groupe sélectionné : créez ou rejoignez un groupe (bouton 👥).');
+  const p = { id: crypto.randomUUID(), group_id: gid, text, urgent: $('#iUrg').checked, author_id: user.id, author_name: myName(), created_at: new Date().toISOString(), item_views: [] };
+  pend.push(p); input.value = ''; $('#iUrg').checked = false; input.focus(); appErr();
+  send(p);
+}
 $('#addForm').addEventListener('submit', (e) => { e.preventDefault(); addItem(); });
 
-// ---------- NOTIFICATIONS PUSH ----------
+// ---------- PUSH ----------
 const b64 = (s) => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
-const pushOK = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 function initPush() {
-  if (!pushOK()) return;
+  if (!('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window)) return;
   if (Notification.permission === 'granted') savePush(); else if (Notification.permission === 'default') show('#bell', true);
 }
 async function savePush() {
@@ -248,11 +351,9 @@ async function savePush() {
     await sb.from('push_subscriptions').upsert({ user_id: user.id, endpoint: sub.endpoint, subscription: sub.toJSON() }, { onConflict: 'endpoint' });
   } catch (e) { console.warn('Push:', e); }
 }
-$('#bell').onclick = async () => { // geste utilisateur obligatoire (iOS)
-  if (await Notification.requestPermission() === 'granted') { show('#bell', false); savePush(); }
-};
+$('#bell').onclick = async () => { if (await Notification.requestPermission() === 'granted') { show('#bell', false); savePush(); toast('🔔 Notifications activées'); } };
 
-// ---------- AIDE INSTALLATION ----------
+// ---------- INSTALLATION ----------
 if (!(matchMedia('(display-mode: standalone)').matches || navigator.standalone)) {
   const box = $('#install');
   if (/iphone|ipad|ipod/i.test(navigator.userAgent)) { box.innerHTML = 'Pour installer : <b>Partager ⬆️</b> puis <b>« Sur l\'écran d\'accueil »</b>'; show('#install', true); }
