@@ -79,12 +79,13 @@ li input{width:22px;height:22px;flex:none}
   </div>
 
   <div id="list" class="hidden">
-    <div class="card">
-      <div class="row"><input id="iText" type="text" placeholder="Ajouter un article…" maxlength="120"><button id="iGo">＋</button></div>
+    <form id="addForm" class="card" autocomplete="off">
+      <div class="row"><input id="iText" type="text" placeholder="Ajouter un article…" maxlength="120" enterkeyhint="send"><button id="iGo" type="submit">＋</button></div>
       <label class="chk"><input id="iUrg" type="checkbox"> 🔴 Urgent (prévient le groupe)</label>
-    </div>
+    </form>
     <ul id="items"></ul>
     <p id="empty" class="mu hidden" style="text-align:center">Liste vide 🎉</p>
+    <p id="dbg" class="mu" style="text-align:center;font-size:.75rem"></p>
   </div>
 </section>
 </main>
@@ -98,10 +99,15 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;'
 const show = (id, on) => $(id).classList.toggle('hidden', !on);
 const gerr = (m) => ($('#gErr').textContent = m || '');
 const appErr = (m) => ($('#appErr').textContent = m || '');
+const fail = (msg, err) => { console.error(msg, err); appErr(msg); alert(msg); };
+const dbg = () => ($('#dbg').textContent = 'v3 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun') + ' · connecté : ' + (user ? 'oui' : 'non'));
 
 // Session persistante dans localStorage = connexion automatique
 const sb = createClient(APP.supabaseUrl, APP.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage } });
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+if ('serviceWorker' in navigator) {
+  if (navigator.serviceWorker.controller) navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });
+  navigator.serviceWorker.register('/sw.js').then((r) => r.update());
+}
 
 let user, groups = [], gid = localStorage.getItem('gid'), chan, mode = 'in';
 const myName = () => user?.user_metadata?.name || 'Anonyme';
@@ -139,6 +145,7 @@ sb.auth.onAuthStateChange((_ev, session) => {
 user = undefined;
 
 function onUser() {
+  dbg();
   if (chan) { sb.removeChannel(chan); chan = null; }
   if (!user) { show('#app', false); show('#auth', true); return; }
   show('#auth', false); show('#app', true);
@@ -150,7 +157,7 @@ function onUser() {
 // ---------- GROUPES ----------
 async function loadGroups(selectId) {
   const { data, error } = await sb.from('group_members').select('groups(id,name)').eq('user_id', user.id);
-  if (error) appErr('Lecture des groupes impossible : ' + error.message);
+  if (error) fail('Lecture des groupes impossible : ' + error.message, error);
   groups = (data || []).map((r) => r.groups).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
   if (selectId) gid = selectId;
   if (!groups.find((g) => g.id === gid)) gid = groups[0]?.id || null;
@@ -180,7 +187,7 @@ async function loadItems() {
   if (!gid) { $('#items').innerHTML = ''; return; }
   localStorage.setItem('gid', gid);
   const { data, error } = await sb.from('items').select('*').eq('group_id', gid).order('created_at', { ascending: false });
-  if (error) return appErr('Lecture des articles impossible : ' + error.message);
+  if (error) return fail('Lecture des articles impossible : ' + error.message, error);
   appErr();
   const items = (data || []).sort((a, b) => (a.done - b.done) || (b.urgent - a.urgent)); // urgents en tête
   $('#items').innerHTML = items.map((i) => `
@@ -189,7 +196,7 @@ async function loadItems() {
       <div class="body"><div class="t">${i.urgent ? '<span class="badge">🔴 URGENT</span>' : ''}${esc(i.text)}</div>
       <div class="by">Ajouté par ${esc(i.author_name)}</div></div>
       <button class="del" aria-label="Supprimer">🗑</button></li>`).join('');
-  show('#empty', !items.length);
+  show('#empty', !items.length); dbg();
 }
 $('#items').onclick = async (e) => {
   const li = e.target.closest('li'); if (!li) return;
@@ -198,22 +205,34 @@ $('#items').onclick = async (e) => {
   loadItems();
 };
 async function addItem() {
-  const text = $('#iText').value.trim();
+  const input = $('#iText'), btn = $('#iGo');
+  const text = input.value.trim();                       // valeur lue AVANT l'envoi
   if (!text) return;
-  if (!gid) return appErr("Aucun groupe sélectionné : créez ou rejoignez un groupe (bouton 👥).");
-  const { data: { session } } = await sb.auth.getSession();          // utilisateur sûr et à jour
-  if (!session) return appErr('Session expirée : reconnectez-vous.');
-  const row = {
-    group_id: gid, text, urgent: $('#iUrg').checked,
-    author_id: session.user.id,
-    author_name: session.user.user_metadata?.name || 'Anonyme'
-  };
-  const { error } = await sb.from('items').insert(row);
-  if (error) return appErr("Ajout impossible : " + error.message);
-  appErr(); $('#iText').value = ''; $('#iUrg').checked = false; $('#iText').focus();
-  loadItems();
+  if (!gid) return fail("Aucun groupe sélectionné : créez ou rejoignez un groupe (bouton 👥).");
+  btn.disabled = true;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return fail('Session expirée : reconnectez-vous.');
+    const row = {
+      group_id: gid,                                     // colonnes obligatoires de la table items
+      text,
+      urgent: $('#iUrg').checked,
+      author_id: session.user.id,
+      author_name: session.user.user_metadata?.name || 'Anonyme'
+    };
+    const { error } = await sb.from('items').insert(row);
+    if (error) return fail('Ajout impossible : ' + error.message, error);
+    input.value = ''; $('#iUrg').checked = false;       // réinitialisation après succès
+    appErr(); input.focus();
+    await loadItems();
+  } catch (e) {
+    fail('Erreur JavaScript : ' + (e.message || e), e);
+  } finally {
+    btn.disabled = false;
+  }
 }
-$('#iGo').onclick = addItem; $('#iText').onkeydown = (e) => e.key === 'Enter' && addItem();
+// <form> : le bouton ＋ ET la touche Entrée appellent submit ; preventDefault évite le rechargement
+$('#addForm').addEventListener('submit', (e) => { e.preventDefault(); addItem(); });
 
 // ---------- NOTIFICATIONS PUSH ----------
 const b64 = (s) => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));

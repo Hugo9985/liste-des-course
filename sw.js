@@ -1,4 +1,4 @@
-const CACHE = 'courses-v2';
+const CACHE = 'courses-v3';
 const SHELL = ['/', '/index.html', '/manifest.json', '/config.js', '/icon-192.png'];
 
 self.addEventListener('install', (e) => {
