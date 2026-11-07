@@ -5,6 +5,8 @@ Projet Supabase : https://gdaltmiyflupgihectin.supabase.co (clés déjà dans `c
 ## 1. Base de données (obligatoire)
 Supabase → **SQL Editor** → coller tout `supabase/schema.sql` → **Run**.
 
+> Problème d'ajout d'articles ? Lancez `supabase/fix.sql` (SQL Editor).
+
 ## 2. Authentification
 Supabase → **Authentication → Providers → Email** : activé.
 - Pour tester vite : désactiver **Confirm email** (sinon l'utilisateur doit cliquer le lien reçu par mail).
