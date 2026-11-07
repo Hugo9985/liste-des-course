@@ -63,6 +63,7 @@ li input{width:22px;height:22px;flex:none}
     <button id="bell" class="sec hidden" title="Activer les notifications">🔔</button>
     <button id="out" class="sec" title="Déconnexion">⏻</button>
   </div>
+  <p id="appErr" class="err"></p>
   <div id="install" class="card hidden"></div>
 
   <div id="groups" class="hidden">
@@ -96,6 +97,7 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const show = (id, on) => $(id).classList.toggle('hidden', !on);
 const gerr = (m) => ($('#gErr').textContent = m || '');
+const appErr = (m) => ($('#appErr').textContent = m || '');
 
 // Session persistante dans localStorage = connexion automatique
 const sb = createClient(APP.supabaseUrl, APP.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage } });
@@ -147,7 +149,8 @@ function onUser() {
 
 // ---------- GROUPES ----------
 async function loadGroups(selectId) {
-  const { data } = await sb.from('group_members').select('groups(id,name)').eq('user_id', user.id);
+  const { data, error } = await sb.from('group_members').select('groups(id,name)').eq('user_id', user.id);
+  if (error) appErr('Lecture des groupes impossible : ' + error.message);
   groups = (data || []).map((r) => r.groups).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
   if (selectId) gid = selectId;
   if (!groups.find((g) => g.id === gid)) gid = groups[0]?.id || null;
@@ -176,7 +179,9 @@ $('#jGo').onclick = async () => {
 async function loadItems() {
   if (!gid) { $('#items').innerHTML = ''; return; }
   localStorage.setItem('gid', gid);
-  const { data } = await sb.from('items').select('*').eq('group_id', gid).order('created_at', { ascending: false });
+  const { data, error } = await sb.from('items').select('*').eq('group_id', gid).order('created_at', { ascending: false });
+  if (error) return appErr('Lecture des articles impossible : ' + error.message);
+  appErr();
   const items = (data || []).sort((a, b) => (a.done - b.done) || (b.urgent - a.urgent)); // urgents en tête
   $('#items').innerHTML = items.map((i) => `
     <li class="${i.urgent && !i.done ? 'urgent' : ''} ${i.done ? 'done' : ''}" data-id="${i.id}">
@@ -193,10 +198,20 @@ $('#items').onclick = async (e) => {
   loadItems();
 };
 async function addItem() {
-  const text = $('#iText').value.trim(); if (!text || !gid) return;
-  const { error } = await sb.from('items').insert({ group_id: gid, text, urgent: $('#iUrg').checked, author_id: user.id, author_name: myName() });
-  if (error) return alert(error.message);
-  $('#iText').value = ''; $('#iUrg').checked = false; $('#iText').focus(); loadItems();
+  const text = $('#iText').value.trim();
+  if (!text) return;
+  if (!gid) return appErr("Aucun groupe sélectionné : créez ou rejoignez un groupe (bouton 👥).");
+  const { data: { session } } = await sb.auth.getSession();          // utilisateur sûr et à jour
+  if (!session) return appErr('Session expirée : reconnectez-vous.');
+  const row = {
+    group_id: gid, text, urgent: $('#iUrg').checked,
+    author_id: session.user.id,
+    author_name: session.user.user_metadata?.name || 'Anonyme'
+  };
+  const { error } = await sb.from('items').insert(row);
+  if (error) return appErr("Ajout impossible : " + error.message);
+  appErr(); $('#iText').value = ''; $('#iUrg').checked = false; $('#iText').focus();
+  loadItems();
 }
 $('#iGo').onclick = addItem; $('#iText').onkeydown = (e) => e.key === 'Enter' && addItem();
 
