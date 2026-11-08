@@ -12,68 +12,77 @@
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="icon" href="/icon-192.png">
 <style>
-:root{--bg:#f2f2f7;--card:#fff;--tx:#111;--mu:#8a8a8e;--pr:#16a34a;--rd:#ff3b30;--bd:rgba(60,60,67,.12);--glass:rgba(242,242,247,.82);--sh:0 2px 12px rgba(0,0,0,.06)}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b0f0d;--card:#1a211d;--tx:#f2f2f7;--mu:#98a29c;--bd:rgba(255,255,255,.09);--glass:rgba(11,15,13,.82);--sh:0 2px 12px rgba(0,0,0,.4)}}
-:root[data-theme=dark]{--bg:#0b0f0d;--card:#1a211d;--tx:#f2f2f7;--mu:#98a29c;--bd:rgba(255,255,255,.09);--glass:rgba(11,15,13,.82);--sh:0 2px 12px rgba(0,0,0,.4)}
+:root{--bg:#efeae2;--hd:#008069;--card:#fff;--bar:#f0f2f5;--tx:#111b21;--mu:#667781;--pr:#00a884;--rd:#ff3b30;--bd:rgba(17,27,33,.1);--bo:#fff;--bm:#d9fdd3;--sh:0 1px 2px rgba(11,20,26,.14)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b141a;--hd:#202c33;--card:#202c33;--bar:#1f2c34;--tx:#e9edef;--mu:#8696a0;--bd:rgba(255,255,255,.09);--bo:#202c33;--bm:#005c4b;--sh:0 1px 2px rgba(0,0,0,.45)}}
+:root[data-theme=dark]{--bg:#0b141a;--hd:#202c33;--card:#202c33;--bar:#1f2c34;--tx:#e9edef;--mu:#8696a0;--bd:rgba(255,255,255,.09);--bo:#202c33;--bm:#005c4b;--sh:0 1px 2px rgba(0,0,0,.45)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",Roboto,system-ui,sans-serif}
-main{max-width:560px;margin:0 auto;padding:0 14px 130px}
+html,body{margin:0;color:var(--tx);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif}
+body{background-color:var(--bg);background-image:radial-gradient(rgba(127,127,127,.1) 1px,transparent 1px);background-size:18px 18px;min-height:100vh}
+main{max-width:620px;margin:0 auto;padding:0 12px 96px}
+#app{padding-top:calc(env(safe-area-inset-top) + 66px)}
 .hidden{display:none!important}
-.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--sh)}
-h1{font-size:2rem;margin:0;letter-spacing:-.5px}h2{font-size:1.1rem;margin:0 0 10px}
-input[type=text],input[type=email],input[type=password],select{width:100%;padding:14px;margin:0 0 10px;border:0;border-radius:12px;background:var(--bg);color:var(--tx);font-size:16px;outline:0}
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:var(--sh)}
+h1{font-size:1.9rem;margin:0}h2{font-size:1.05rem;margin:0 0 10px}
+input[type=text],input[type=email],input[type=password]{width:100%;padding:13px;margin:0 0 10px;border:0;border-radius:10px;background:var(--bg);color:var(--tx);font-size:16px;outline:0}
 input:focus{box-shadow:0 0 0 2px var(--pr)}
-button{font:inherit;border:0;border-radius:14px;padding:13px 18px;background:var(--pr);color:#fff;font-weight:600;cursor:pointer;transition:transform .12s,opacity .2s}
+button{font:inherit;border:0;border-radius:12px;padding:12px 18px;background:var(--pr);color:#fff;font-weight:600;cursor:pointer;transition:transform .12s,opacity .2s}
 button:active{transform:scale(.94)}button:disabled{opacity:.5}
 button.sec{background:var(--card);color:var(--tx);box-shadow:var(--sh)}button.full{width:100%}
 .hero{text-align:center;padding:64px 0 22px}.hero .logo{font-size:3.4rem;display:block;margin-bottom:6px}
 .seg{display:flex;background:var(--bg);border-radius:12px;padding:3px;margin-bottom:14px}
 .seg button{flex:1;background:none;color:var(--mu);box-shadow:none;border-radius:10px;padding:9px}
 .seg button.on{background:var(--card);color:var(--tx);box-shadow:var(--sh)}
-.top{position:sticky;top:0;z-index:20;margin:0 -14px;padding:calc(env(safe-area-inset-top) + 10px) 14px 8px;background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
-.top .r{display:flex;align-items:center;gap:8px}
-#gSel{margin:0;padding:4px 0;background:none;font-size:1.7rem;font-weight:800;letter-spacing:-.5px;flex:1;min-width:0;appearance:none;-webkit-appearance:none;text-overflow:ellipsis}
-.ib{width:40px;height:40px;padding:0;border-radius:50%;font-size:1.05rem;flex:none}
-#count{color:var(--mu);font-size:.85rem;margin:0 0 4px}
-ul{list-style:none;margin:12px 0 0;padding:0}
-li{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:16px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--sh);max-height:140px;transition:background .3s,opacity .3s}
-li.in{animation:in .4s cubic-bezier(.2,.9,.3,1.25)}li.out{animation:out .26s ease forwards;overflow:hidden}
-@keyframes in{from{opacity:0;transform:translateY(-12px) scale(.96)}to{opacity:1;transform:none}}
-@keyframes out{to{opacity:0;transform:translateX(50px);max-height:0;margin:0;padding-top:0;padding-bottom:0}}
-li.urgent{background:linear-gradient(90deg,color-mix(in srgb,var(--rd) 14%,var(--card)),var(--card));box-shadow:inset 4px 0 0 var(--rd),var(--sh)}
-li.done{opacity:.55}li.done .t{text-decoration:line-through}
-.ck{width:28px;height:28px;padding:0;flex:none;border-radius:50%;background:none;border:2px solid var(--bd);box-shadow:none;border-color:var(--mu)}
-li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{content:"✓";color:#fff;font-size:.95rem}
-.bd{flex:1;min-width:0}.t{word-break:break-word;font-weight:500}
-.meta,.seen{font-size:.76rem;color:var(--mu)}.seen{margin-top:1px}
-.badge{display:inline-block;background:linear-gradient(135deg,#ff453a,#d70015);color:#fff;font-size:.66rem;font-weight:800;letter-spacing:.4px;border-radius:99px;padding:2px 8px;margin-right:7px;vertical-align:1px;animation:pulse 2s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.5)}70%,100%{box-shadow:0 0 0 7px rgba(255,59,48,0)}}
-.side{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
-.tk{color:var(--mu);font-size:.78rem;letter-spacing:-3px}.tk.ok{color:#34c759}
-.del{background:none;box-shadow:none;color:var(--mu);padding:2px 6px;font-size:.95rem}.retry{background:var(--rd);padding:5px 9px;font-size:.72rem;border-radius:9px}
-.empty{text-align:center;color:var(--mu);padding:40px 0}.empty b{display:block;font-size:2.6rem}
-#dbg{text-align:center;color:var(--mu);font-size:.7rem;opacity:.6}
-#composer{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:10px 14px calc(env(safe-area-inset-bottom) + 10px);background:var(--glass);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
-#composer form{max-width:560px;margin:0 auto;display:flex;gap:8px;align-items:center}
-#iText{margin:0;flex:1;border-radius:99px;padding:13px 18px;background:var(--card);box-shadow:var(--sh)}
-.chip input{display:none}.chip span{display:block;padding:11px 13px;border-radius:99px;background:var(--card);box-shadow:var(--sh);font-size:.85rem;font-weight:700;color:var(--mu);cursor:pointer;transition:.2s}
-.chip input:checked+span{background:var(--rd);color:#fff}
-#iGo{width:46px;height:46px;padding:0;border-radius:50%;font-size:1.4rem;flex:none}
-.sheet{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .25s}
-.sheet.open{opacity:1;pointer-events:auto}
-.panel{position:absolute;left:0;right:0;bottom:0;max-width:560px;margin:auto;background:var(--bg);border-radius:24px 24px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom) + 14px);transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.9,.3,1);max-height:90vh;overflow:auto}
-.open .panel{transform:none}.grab{width:40px;height:5px;border-radius:9px;background:var(--bd);margin:0 auto 12px}
-.err{color:var(--rd);font-size:.88rem;min-height:1.1em;margin:4px 0}.mu{color:var(--mu);font-size:.88rem}
-#install{background:var(--pr);color:#fff;text-align:center;margin-top:8px}
-.av{position:relative;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#34c759,#0a84ff);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex:none;overflow:hidden}
+.hd{position:fixed;top:0;left:0;right:0;z-index:30;background:var(--hd);color:#fff;padding:calc(env(safe-area-inset-top) + 8px) 8px 8px 12px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.hr{max-width:620px;margin:0 auto;display:flex;align-items:center;gap:4px}
+.hg{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer}
+.ht{min-width:0}.ht b{display:block;font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ht small{opacity:.82;font-size:.76rem}
+.hb{background:none;box-shadow:none;color:#fff;width:40px;height:40px;padding:0;border-radius:50%;font-size:1.2rem;flex:none}
+.av{position:relative;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex:none;overflow:hidden}
+.av.big{width:42px;height:42px;background:rgba(255,255,255,.22);font-size:1.2rem}
 .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+ul{list-style:none;margin:0;padding:8px 0 0}
+li{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;max-height:260px}
+li.me{flex-direction:row-reverse}
+li.in{animation:in .35s cubic-bezier(.2,.9,.3,1.2)}li.out{animation:out .26s ease forwards;overflow:hidden}
+@keyframes in{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes out{to{opacity:0;transform:scale(.9);max-height:0;margin:0}}
+.bub{max-width:80%;min-width:150px;background:var(--bo);border-radius:12px 12px 12px 3px;padding:6px 10px 4px;box-shadow:var(--sh);transition:opacity .3s}
+li.me .bub{background:var(--bm);border-radius:12px 12px 3px 12px}
+.who{font-size:.78rem;font-weight:700;color:#06a28c;display:flex;align-items:center;gap:6px;margin-bottom:1px}
+li.me .who{color:var(--mu)}
+.t{display:flex;gap:9px;align-items:flex-start}.tx{flex:1;min-width:0;word-break:break-word}
+.ck{width:22px;height:22px;padding:0;flex:none;border-radius:50%;background:none;border:2px solid var(--mu);box-shadow:none;margin-top:1px}
+li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{content:"✓";color:#fff;font-size:.8rem}
+li.done .bub{opacity:.6}li.done .tx{text-decoration:line-through}
+li.urgent .bub{outline:2px solid var(--rd);box-shadow:0 0 0 4px rgba(255,59,48,.2),0 0 16px rgba(255,59,48,.55)}
+.badge{background:linear-gradient(135deg,#ff453a,#d70015);color:#fff;font-size:.62rem;font-weight:800;letter-spacing:.5px;border-radius:99px;padding:2px 8px;animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,59,48,.55)}70%,100%{box-shadow:0 0 0 7px rgba(255,59,48,0)}}
+.ft{display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;gap:6px;font-size:.68rem;color:var(--mu);margin-top:2px}
+.seen{flex:1;text-align:left;min-width:60%}.tk{letter-spacing:-3px}.tk.ok{color:#34c759}
+.ft button.act,.ft button.retry{background:none;box-shadow:none;color:var(--mu);padding:0 3px;font-size:.85rem}
+.ft button.retry{background:var(--rd);color:#fff;font-size:.68rem;padding:3px 8px;border-radius:8px}
+.ei{width:100%;margin:0!important;padding:4px 8px!important;border-radius:8px!important;background:var(--bg)}
+.empty{text-align:center;color:var(--mu);padding:50px 0}.empty b{display:block;font-size:2.6rem}
+#dbg{text-align:center;color:var(--mu);font-size:.66rem;opacity:.6}
+#composer{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 10px calc(env(safe-area-inset-bottom) + 8px);background:var(--bar)}
+#composer form{max-width:620px;margin:0 auto;display:flex;gap:8px;align-items:center}
+#iText{margin:0;flex:1;border-radius:99px;padding:12px 16px;background:var(--card);box-shadow:var(--sh);color:var(--tx)}
+.chip input{display:none}.chip span{display:block;padding:10px 12px;border-radius:99px;background:var(--card);box-shadow:var(--sh);font-size:.8rem;font-weight:700;color:var(--mu);cursor:pointer;transition:.2s}
+.chip input:checked+span{background:var(--rd);color:#fff}
+#iGo{width:46px;height:46px;padding:0;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center}
+.sheet{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .25s}
+.sheet.open{opacity:1;pointer-events:auto}
+.panel{position:absolute;left:0;right:0;bottom:0;max-width:620px;margin:auto;background:var(--bg);border-radius:22px 22px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom) + 14px);transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.9,.3,1);max-height:90vh;overflow:auto}
+.open .panel{transform:none}.grab{width:40px;height:5px;border-radius:9px;background:var(--bd);margin:0 auto 12px}
+.grp{display:flex;width:100%;align-items:center;gap:10px;background:none;color:var(--tx);box-shadow:none;text-align:left;border-radius:12px;padding:8px}.grp.on{background:var(--bg)}.grp .n{flex:1}
+.mem{display:flex;align-items:center;gap:10px;padding:7px 0;flex-wrap:wrap}.mem .n{flex:1;min-width:120px}.mem small{display:block;color:var(--mu);font-size:.74rem}.mem small.bn{color:var(--rd)}
+.mc{display:flex;gap:4px;width:100%;justify-content:flex-end}.mc button{padding:5px 9px;font-size:.76rem;background:var(--bg);color:var(--tx);box-shadow:none;border-radius:9px}
+.role{font-size:.68rem;font-weight:800;background:var(--pr);color:#fff;border-radius:99px;padding:3px 9px}.role.mb{background:var(--bd);color:var(--mu)}
 .pick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}.pick button{width:42px;height:42px;padding:0;font-size:1.4rem;background:var(--bg);box-shadow:none;border-radius:50%}.pick button.on{outline:3px solid var(--pr)}
-.ei{width:100%;margin:0!important;padding:6px 10px!important;border-radius:10px!important;background:var(--bg)}
-.act{background:none;box-shadow:none;color:var(--mu);padding:2px 6px;font-size:.95rem}
-.mem{display:flex;align-items:center;gap:10px;padding:7px 0}.mem .n{flex:1}.role.mb{background:var(--bd);color:var(--mu)}
-.role{font-size:.68rem;font-weight:800;background:var(--pr);color:#fff;border-radius:99px;padding:3px 9px}
 .chk{display:flex;gap:8px;align-items:center;color:var(--mu);margin-bottom:10px}.chk input{width:20px;height:20px}
-#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translate(-50%,-90px);z-index:50;background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:.88rem;max-width:90%;transition:transform .4s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.err{color:var(--rd);font-size:.88rem;min-height:1.1em;margin:4px 0}.mu{color:var(--mu);font-size:.88rem}
+#install{background:var(--pr);color:#fff;text-align:center}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translate(-50%,-110px);z-index:60;background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:.88rem;max-width:90%;transition:transform .4s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #toast.on{transform:translate(-50%,0)}
 </style>
 </head>
@@ -95,27 +104,26 @@ li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{conte
 </section>
 
 <section id="app" class="hidden">
-  <div class="top">
-    <div class="r">
-      <select id="gSel"></select>
-      <button id="gMenu" class="sec ib" title="Groupes">👥</button>
-      <button id="bell" class="sec ib hidden" title="Activer les notifications">🔔</button>
-      <button id="prof" class="sec ib" title="Profil">👤</button>
-    </div>
-    <p id="count"></p>
-  </div>
+  <header class="hd"><div class="hr">
+    <div id="hGo" class="hg"><span id="hAv" class="av big">🛒</span><div class="ht"><b id="hName">Courses Ensemble</b><small id="hSub"></small></div></div>
+    <button id="bell" class="hb hidden" title="Activer les notifications">🔔</button>
+    <button id="prof" class="hb" title="Mon profil">👤</button>
+    <button id="info" class="hb" title="Infos du groupe et membres">ⓘ</button>
+  </div></header>
   <p id="appErr" class="err"></p>
   <div id="install" class="card hidden"></div>
-
+  <div id="banned" class="card hidden" style="text-align:center"><b style="font-size:2.6rem">🚫</b><h2>Accès bloqué</h2><p id="banMsg" class="mu"></p></div>
   <div id="list" class="hidden">
-    <ul id="items"></ul>
-    <div id="empty" class="empty hidden"><b>🎉</b>Liste vide, rien à acheter !</div>
-    <p id="dbg"></p>
+    <div id="chat">
+      <ul id="items"></ul>
+      <div id="empty" class="empty hidden"><b>🛒</b>Aucun article. Écrivez le premier !</div>
+      <p id="dbg"></p>
+    </div>
     <div id="composer">
       <form id="addForm" autocomplete="off">
         <input id="iText" type="text" placeholder="Ajouter un article…" maxlength="120" enterkeyhint="send">
         <label class="chip"><input id="iUrg" type="checkbox"><span>🔴 Urgent</span></label>
-        <button id="iGo" type="submit" aria-label="Ajouter">↑</button>
+        <button id="iGo" type="submit" aria-label="Envoyer"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
       </form>
     </div>
   </div>
@@ -124,12 +132,7 @@ li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{conte
 
 <div id="sheet" class="sheet"><div class="panel">
   <div class="grab"></div>
-  <div id="manage" class="card hidden"><h2>👑 Gérer le groupe</h2>
-    <input id="mName" type="text" placeholder="Nom du groupe">
-    <input id="mPass" type="password" placeholder="Nouveau mot de passe (vide = inchangé)">
-    <label class="chk"><input id="mRm" type="checkbox"> Retirer le mot de passe</label>
-    <button id="mGo" class="full">Enregistrer</button></div>
-  <div id="members" class="card hidden"><h2 id="mTitle">Membres du groupe</h2><div id="mList"></div></div>
+  <div class="card"><h2>Mes groupes</h2><div id="gList"></div></div>
   <div class="card"><h2>Créer un groupe</h2>
     <input id="cName" type="text" placeholder="Nom du groupe">
     <input id="cPass" type="password" placeholder="Mot de passe (optionnel)">
@@ -139,7 +142,18 @@ li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{conte
     <input id="jPass" type="password" placeholder="Mot de passe (si requis)">
     <button id="jGo" class="full">Rejoindre</button></div>
   <p id="gErr" class="err"></p>
-  <button id="sClose" class="sec full">Fermer</button>
+  <button class="sec full" data-close>Fermer</button>
+</div></div>
+
+<div id="isheet" class="sheet"><div class="panel">
+  <div class="grab"></div>
+  <div id="members" class="card"><h2 id="mTitle">Membres du groupe</h2><div id="mList"></div></div>
+  <div id="manage" class="card hidden"><h2>👑 Gérer le groupe</h2>
+    <input id="mName" type="text" placeholder="Nom du groupe">
+    <input id="mPass" type="password" placeholder="Nouveau mot de passe (vide = inchangé)">
+    <label class="chk"><input id="mRm" type="checkbox"> Retirer le mot de passe</label>
+    <button id="mGo" class="full">Enregistrer</button></div>
+  <button class="sec full" data-close>Fermer</button>
 </div></div>
 
 <div id="psheet" class="sheet"><div class="panel">
@@ -173,11 +187,11 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then((r) => r.update());
 }
 
-let user, groups = [], items = [], pend = [], prof = {}, editing = null, signAv = '', pAv = '', gid = localStorage.getItem('gid'), chan, mode = 'in', first = true, muted = localStorage.getItem('mute') === '1';
+let user, groups = [], items = [], pend = [], prof = {}, roster = [], alias = {}, rosterErr = '', todoN = 0, editing = null, signAv = '', pAv = '', gid = localStorage.getItem('gid'), chan, mode = 'in', first = true, muted = localStorage.getItem('mute') === '1';
 const SUPER = 'charton.hugo1001@gmail.com';   // l'autorité réelle est la base de données (RLS)
 const isSuper = () => user?.email?.toLowerCase() === SUPER;
 const isAdmin = () => isSuper() || groups.find((g) => g.id === gid)?.role === 'admin';
-const nm = (id, fb) => prof[id]?.name || fb || '?';
+const nm = (id, fb) => alias[id] || prof[id]?.name || fb || '?';
 function av(id, fb) {
   const a = prof[id]?.avatar_url || '', url = /^https?:\/\//.test(a);
   return `<span class="av">${url || !a ? esc(nm(id, fb).charAt(0).toUpperCase()) : esc(a)}${url ? `<img src="${esc(a)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
@@ -193,7 +207,7 @@ async function loadProfiles(ids) {
   (data || []).forEach((p) => (prof[p.id] = p)); need.forEach((id) => { if (!prof[id]) prof[id] = { id }; });
 }
 const myName = () => user?.user_metadata?.name || 'Anonyme';
-const dbg = () => ($('#dbg').textContent = 'v6 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
+const dbg = () => ($('#dbg').textContent = 'v7 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
 
 // ---------- THÈME & SON ----------
 const root = document.documentElement;
@@ -255,6 +269,7 @@ function onUser() {
   show('#auth', false); show('#app', true); loadGroups(); initPush();
   chan = sb.channel('live')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'items' }, onInsert)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => refreshRoster())
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'items' }, load)
     .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'items' }, load)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'item_views' }, load)
@@ -272,20 +287,66 @@ function onInsert(p) {
 
 // ---------- GROUPES ----------
 const sheet = (o, id = '#sheet') => { $(id).classList.toggle('open', o); if (o) gerr(); };
+const isBannedRow = (r) => !!r && (r.is_banned || (r.banned_until && new Date(r.banned_until) > new Date()));
+const banned = () => !isSuper() && isBannedRow(groups.find((g) => g.id === gid));
+const scrollEnd = () => setTimeout(() => scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 60);
+function setHead() {
+  const g = groups.find((x) => x.id === gid), n = roster.filter((r) => !isBannedRow(r)).length;
+  $('#hName').textContent = g ? g.name : 'Courses Ensemble';
+  $('#hAv').textContent = g ? g.name.charAt(0).toUpperCase() : '🛒';
+  $('#hSub').textContent = !g ? 'Créez ou rejoignez un groupe' : banned() ? 'Accès bloqué'
+    : `${n} membre${n > 1 ? 's' : ''}${todoN ? ` · ${todoN} à acheter` : ''}${isAdmin() ? ' · 👑' : ''}`;
+}
+function applyBan() {
+  const b = banned(), g = groups.find((x) => x.id === gid);
+  show('#chat', !b); show('#composer', !b); show('#banned', b && !!g);
+  if (b && g) $('#banMsg').textContent = g.is_banned ? 'Un administrateur vous a retiré l’accès à ce groupe.'
+    : `Vous êtes banni de ce groupe jusqu’au ${new Date(g.banned_until).toLocaleString('fr-FR')}.`;
+}
+async function refreshRoster() {
+  if (!gid) { roster = []; alias = {}; return setHead(); }
+  const cols = 'user_id, role, custom_display_name, is_banned, banned_until';
+  // Jointure explicite group_members -> profiles (nom + avatar de chaque membre)
+  let { data, error } = await sb.from('group_members').select(cols + ', profiles(id,name,avatar_url)').eq('group_id', gid);
+  if (error) {
+    console.warn('Jointure profiles indisponible :', error.message);
+    ({ data, error } = await sb.from('group_members').select(cols).eq('group_id', gid));
+    if (!error) await loadProfiles(data.map((m) => m.user_id));
+  } else data.forEach((m) => { prof[m.user_id] = m.profiles || prof[m.user_id] || { id: m.user_id }; });
+  if (error) { rosterErr = error.message; console.error(error); setHead(); return renderMembers(); }
+  rosterErr = ''; roster = data; alias = {};
+  data.forEach((m) => { if (m.custom_display_name) alias[m.user_id] = m.custom_display_name; });
+  const me = data.find((m) => m.user_id === user.id), g = groups.find((x) => x.id === gid);
+  if (me && g) Object.assign(g, { role: me.role, is_banned: me.is_banned, banned_until: me.banned_until });
+  renderGroupList(); setHead(); applyBan(); render(); renderMembers();
+  if (!banned() && !items.length) loadItems();
+}
+function renderGroupList() {
+  $('#gList').innerHTML = groups.length ? groups.map((g) => `<button class="grp ${g.id === gid ? 'on' : ''}" data-id="${g.id}"><span class="av">${esc(g.name.charAt(0).toUpperCase())}</span><span class="n">${esc(g.name)}</span>${isBannedRow(g) ? '🚫' : g.role === 'admin' ? '<span class="role">👑 Admin</span>' : ''}</button>`).join('') : '<p class="mu">Aucun groupe pour le moment.</p>';
+}
+function switchView() { first = true; items = []; roster = []; alias = {}; $('#items').innerHTML = ''; renderGroupList(); setHead(); applyBan(); refreshRoster(); loadItems(); }
 async function loadGroups(selectId) {
-  const { data, error } = await sb.from('group_members').select('role, groups(id,name)').eq('user_id', user.id);
+  const { data, error } = await sb.from('group_members').select('role, is_banned, banned_until, groups(id,name)').eq('user_id', user.id);
   if (error) fail('Lecture des groupes impossible : ' + error.message, error);
-  groups = (data || []).map((r) => r.groups && { ...r.groups, role: r.role }).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+  groups = (data || []).filter((r) => r.groups).map((r) => ({ ...r.groups, role: r.role, is_banned: r.is_banned, banned_until: r.banned_until }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   if (selectId) gid = selectId;
   if (!groups.find((g) => g.id === gid)) gid = groups[0]?.id || null;
-  $('#gSel').innerHTML = groups.map((g) => `<option value="${g.id}" ${g.id === gid ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
-  show('#gSel', groups.length > 0); show('#list', groups.length > 0);
-  if (!groups.length) { $('#count').textContent = 'Créez ou rejoignez un groupe'; sheet(true); } else if (selectId) sheet(false);
-  first = true; $('#items').innerHTML = ''; loadItems();
+  show('#list', groups.length > 0);
+  if (!groups.length) sheet(true); else if (selectId) sheet(false);
+  switchView();
 }
-$('#gSel').onchange = (e) => { gid = e.target.value; items = []; first = true; $('#items').innerHTML = ''; loadItems(); };
-$('#gMenu').onclick = () => { sheet(true); loadMembers(); }; $('#sClose').onclick = () => sheet(false);
-$('#sheet').onclick = (e) => { if (e.target.id === 'sheet') sheet(false); };
+$('#gList').onclick = (e) => { const b = e.target.closest('.grp'); if (!b) return; gid = b.dataset.id; sheet(false); switchView(); };
+$('#hGo').onclick = () => sheet(true);
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-close]')) sheet(false, '#' + e.target.closest('.sheet').id);
+  else if (e.target.classList?.contains('sheet')) sheet(false, '#' + e.target.id);
+});
+$('#info').onclick = () => {
+  if (!gid) return sheet(true);
+  sheet(true, '#isheet'); renderMembers(); refreshRoster();
+  show('#manage', isAdmin()); if (isAdmin()) { $('#mName').value = groups.find((g) => g.id === gid)?.name || ''; $('#mPass').value = ''; $('#mRm').checked = false; }
+};
 $('#cGo').onclick = async () => {
   const { data, error } = await sb.rpc('create_group', { p_name: $('#cName').value, p_password: $('#cPass').value });
   if (error) return gerr(error.message);
@@ -303,7 +364,7 @@ const fmt = (d) => {
   return x.toDateString() === new Date().toDateString() ? 'à ' + t : 'le ' + x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' à ' + t;
 };
 async function loadItems() {
-  if (!gid) { items = []; return render(); }
+  if (!gid || banned()) { items = []; return render(); }
   localStorage.setItem('gid', gid);
   const q = (cols) => sb.from('items').select(cols).eq('group_id', gid).order('created_at', { ascending: false });
   // Jointure explicite via la clé étrangère nommée ; si elle échoue, on lit les articles sans "Vu par"
@@ -316,43 +377,45 @@ async function loadItems() {
   appErr(); items = data || [];
   await loadProfiles([user.id, ...items.map((i) => i.author_id), ...items.flatMap((i) => (i.item_views || []).map((v) => v.user_id))]);
   pend = pend.filter((p) => !items.some((i) => i.id === p.id));
-  render(); first = false; markSeen();
+  const wasFirst = first; render(); first = false; if (wasFirst) scrollEnd(); markSeen();
 }
+const fmtT = (d) => {
+  const x = new Date(d), t = x.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return x.toDateString() === new Date().toDateString() ? t : x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + t;
+};
 function render() {
   const ids = new Set(items.map((i) => i.id));
-  const all = [...pend.filter((p) => p.group_id === gid && !ids.has(p.id)), ...items]
-    .sort((a, b) => (!!a.done - !!b.done) || (b.urgent - a.urgent) || (new Date(b.created_at) - new Date(a.created_at)));
+  const all = [...pend.filter((p) => p.group_id === gid && !ids.has(p.id)), ...items]   // urgents non achetés en haut, puis ordre chronologique
+    .sort((a, b) => ((a.urgent && !a.done) ? 0 : 1) - ((b.urgent && !b.done) ? 0 : 1) || new Date(a.created_at) - new Date(b.created_at));
   const ul = $('#items'), keep = new Set(all.map((i) => i.id));
   [...ul.children].forEach((li) => { if (!keep.has(li.dataset.id) && !li.classList.contains('out')) { li.classList.add('out'); setTimeout(() => li.remove(), 260); } });
   let prev = null;
   all.forEach((i) => {
-    const mine = i.author_id === user.id, can = mine || isAdmin(), pa = prof[i.author_id] || {};
+    const mine = i.author_id === user.id, can = mine || isAdmin(), pa = prof[i.author_id] || {}, who = nm(i.author_id, i.author_name);
     const seen = (i.item_views || []).filter((v) => v.user_id !== user.id).map((v) => nm(v.user_id, v.user_name));
-    const sig = JSON.stringify([i.text, i.urgent, i.done, i.state || '', seen, can, i.edited_at || '', pa.avatar_url || '', pa.name || '']);
+    const sig = JSON.stringify([i.text, i.urgent, i.done, i.state || '', seen, can, i.edited_at || '', pa.avatar_url || '', who]);
     let li = ul.querySelector(`[data-id="${i.id}"]:not(.out)`);
     if (!li) { li = document.createElement('li'); li.dataset.id = i.id; if (!first) li.classList.add('in'); }
     if (li.dataset.sig !== sig && editing !== i.id) {
-      li.dataset.sig = sig; li.classList.toggle('urgent', !!i.urgent && !i.done); li.classList.toggle('done', !!i.done);
+      li.dataset.sig = sig; li.classList.toggle('me', mine); li.classList.toggle('urgent', !!i.urgent && !i.done); li.classList.toggle('done', !!i.done);
       const tick = !mine ? '' : i.state === 'sending' ? '<span class="tk" title="Envoi…">✓</span>'
         : i.state === 'error' ? '<button class="retry">⚠ Réessayer</button>' : '<span class="tk ok" title="Enregistré">✓✓</span>';
       const seenTxt = seen.length ? `👁 Vu par ${esc(seen.join(', '))}` : mine && !i.state ? 'Pas encore vu' : '';
-      li.innerHTML = `<button class="ck" aria-label="Acheté"></button>${av(i.author_id, i.author_name)}
-        <div class="bd"><div class="t">${i.urgent ? '<span class="badge">URGENT</span>' : ''}${esc(i.text)}</div>
-        <div class="meta">${esc(mine ? 'Vous' : nm(i.author_id, i.author_name))} · Ajouté ${fmt(i.created_at)}${i.edited_at ? ' · modifié' : ''}</div>
-        ${seenTxt ? `<div class="seen">${seenTxt}</div>` : ''}</div>
-        <div class="side">${tick}<span>${can && !i.state ? '<button class="act ed" aria-label="Modifier">✎</button>' : ''}${can ? '<button class="del" aria-label="Supprimer">✕</button>' : ''}</span></div>`;
+      li.innerHTML = `${av(i.author_id, i.author_name)}<div class="bub">
+        <div class="who">${esc(mine ? 'Vous' : who)}${i.urgent ? '<span class="badge">URGENT</span>' : ''}</div>
+        <div class="t"><button class="ck" aria-label="Acheté"></button><span class="tx">${esc(i.text)}</span></div>
+        <div class="ft">${seenTxt ? `<span class="seen">${seenTxt}</span>` : ''}${can && !i.state ? '<button class="act ed" aria-label="Modifier">✎</button>' : ''}${can ? '<button class="act del" aria-label="Supprimer">✕</button>' : ''}<span>${fmtT(i.created_at)}${i.edited_at ? ' · modifié' : ''}</span>${tick}</div></div>`;
     }
     ul.insertBefore(li, prev ? prev.nextSibling : ul.firstChild); prev = li;
   });
-  const todo = all.filter((i) => !i.done).length, done = all.length - todo;
-  if (gid) $('#count').textContent = `${todo} à acheter${done ? ` · ${done} acheté${done > 1 ? 's' : ''}` : ''}${isAdmin() ? ' · 👑 admin' : ''}`;
-  show('#empty', !all.length); dbg();
+  todoN = all.filter((i) => !i.done).length; setHead();
+  show('#empty', !all.length && !banned()); dbg();
 }
 
-// Modification rapide (bouton ✎ ou double-clic) : Entrée = enregistrer, Échap = annuler
+// Modification rapide (✎ ou double-clic) : Entrée = enregistrer, Échap = annuler
 function startEdit(li) {
   const id = li.dataset.id, it = items.find((x) => x.id === id); if (!it) return;
-  editing = id; const t = li.querySelector('.t');
+  editing = id; const t = li.querySelector('.tx');
   t.innerHTML = `<input class="ei" maxlength="120" value="${esc(it.text)}">`;
   const inp = t.firstChild; inp.focus(); inp.select();
   inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); saveEdit(id, inp.value); } else if (e.key === 'Escape') { editing = null; li.dataset.sig = ''; render(); } };
@@ -385,35 +448,36 @@ $('#items').onclick = async (e) => {
   } else if (e.target.closest('.retry')) { const p = pend.find((x) => x.id === id); if (p) send(p); }
 };
 
-// ---------- MEMBRES & ADMIN DU GROUPE ----------
-async function loadMembers() {
-  show('#manage', false); show('#members', true);
-  if (!gid) { $('#mList').innerHTML = ''; return; }
-  $('#mList').innerHTML = '<p class="mu">Chargement…</p>';
-  // Jointure group_members -> profiles (clé étrangère group_members_user_id_profiles_fkey)
-  let { data, error } = await sb.from('group_members').select('user_id, role, profiles(id,name,avatar_url)').eq('group_id', gid);
-  if (error) {                       // secours : deux requêtes séparées
-    console.warn('Jointure profiles indisponible :', error.message);
-    ({ data, error } = await sb.from('group_members').select('user_id, role').eq('group_id', gid));
-    if (!error) await loadProfiles(data.map((m) => m.user_id));
-  } else data.forEach((m) => { prof[m.user_id] = m.profiles || prof[m.user_id] || { id: m.user_id }; });
-  if (error) { $('#mList').innerHTML = `<p class="err">Membres illisibles : ${esc(error.message)}</p>`; return console.error(error); }
-  data.sort((a, b) => (b.role === 'admin') - (a.role === 'admin') || nm(a.user_id).localeCompare(nm(b.user_id)));
-  $('#mTitle').textContent = `Membres du groupe (${data.length})`;
-  $('#mList').innerHTML = data.map((m) =>
-    `<div class="mem" data-u="${m.user_id}">${av(m.user_id)}<div class="n">${esc(nm(m.user_id, 'Membre'))}${m.user_id === user.id ? ' (vous)' : ''}</div>` +
-    (m.role === 'admin' ? '<span class="role">👑 Admin</span>' : '<span class="role mb">Membre</span>' +
-      (isAdmin() ? '<button class="sec promo" style="padding:7px 11px;font-size:.8rem">Promouvoir</button>' : '')) + '</div>').join('');
-  if (isAdmin()) { $('#mName').value = groups.find((g) => g.id === gid)?.name || ''; $('#mPass').value = ''; $('#mRm').checked = false; show('#manage', true); }
+// ---------- PANNEAU MEMBRES (nom + avatar + badge Admin/Membre + modération) ----------
+function renderMembers() {
+  if (rosterErr) { $('#mList').innerHTML = `<p class="err">Membres illisibles : ${esc(rosterErr)}<br>Lancez le script SQL update_v7.sql.</p>`; return; }
+  $('#mTitle').textContent = `Membres du groupe (${roster.length})`;
+  const adm = isAdmin();
+  $('#mList').innerHTML = [...roster].sort((a, b) => (b.role === 'admin') - (a.role === 'admin') || nm(a.user_id).localeCompare(nm(b.user_id))).map((m) => {
+    const b = isBannedRow(m), real = prof[m.user_id]?.name, self = m.user_id === user.id;
+    const until = b && !m.is_banned ? ' jusqu’au ' + new Date(m.banned_until).toLocaleString('fr-FR') : '';
+    const ctl = adm && !self ? `<div class="mc"><button class="ren">✏️ Renommer</button>${b ? '<button class="unban">✅ Débannir</button>' : '<button class="ban">🚫 Bannir</button>'}${m.role !== 'admin' ? '<button class="promo">👑 Promouvoir</button>' : ''}</div>` : '';
+    return `<div class="mem" data-u="${m.user_id}">${av(m.user_id)}<div class="n">${esc(nm(m.user_id, 'Membre'))}${self ? ' (vous)' : ''}${m.custom_display_name && real ? `<small>Pseudo : ${esc(real)}</small>` : ''}${b ? `<small class="bn">🚫 Banni${until}</small>` : ''}</div>${m.role === 'admin' ? '<span class="role">👑 Admin</span>' : '<span class="role mb">Membre</span>'}${ctl}</div>`;
+  }).join('');
 }
 $('#mList').onclick = async (e) => {
-  const b = e.target.closest('.promo'); if (!b) return;
-  const { error } = await sb.rpc('set_member_role', { p_group: gid, p_user: b.closest('.mem').dataset.u, p_role: 'admin' });
-  if (error) return gerr(error.message); toast('👑 Nouvel administrateur'); loadMembers();
+  const b = e.target.closest('button'); if (!b) return; const u = b.closest('.mem').dataset.u, c = b.classList; let r;
+  if (c.contains('promo')) r = await sb.rpc('set_member_role', { p_group: gid, p_user: u, p_role: 'admin' });
+  else if (c.contains('ren')) {
+    const n = prompt("Nom affiché dans ce groupe (vide = nom d'origine) :", roster.find((m) => m.user_id === u)?.custom_display_name || ''); if (n === null) return;
+    r = await sb.rpc('rename_member', { p_group: gid, p_user: u, p_name: n });
+  } else if (c.contains('ban')) {
+    const h = prompt('Durée du bannissement en heures (laisser vide = définitif) :', ''); if (h === null) return;
+    const hrs = parseFloat(h.replace(',', '.')), temp = h.trim() !== '' && hrs > 0;
+    r = await sb.rpc('ban_member', { p_group: gid, p_user: u, p_until: temp ? new Date(Date.now() + hrs * 3600e3).toISOString() : null, p_permanent: !temp });
+  } else if (c.contains('unban')) r = await sb.rpc('unban_member', { p_group: gid, p_user: u });
+  if (r?.error) return toast('⚠️ ' + r.error.message);
+  toast('✅ Fait'); refreshRoster();
 };
 $('#mGo').onclick = async () => {
   const { error } = await sb.rpc('update_group', { p_group: gid, p_name: $('#mName').value, p_password: $('#mPass').value || null, p_remove_password: $('#mRm').checked });
-  if (error) return gerr(error.message); toast('✅ Groupe mis à jour'); loadGroups(gid);
+  if (error) return toast('⚠️ ' + error.message);
+  toast('✅ Groupe mis à jour'); sheet(false, '#isheet'); loadGroups(gid);
 };
 
 // ---------- PROFIL ----------
@@ -438,7 +502,7 @@ $('#pSave').onclick = async () => {
 
 // "Vu par" : on enregistre les articles affichés à l'écran
 async function markSeen() {
-  if (document.visibilityState !== 'visible' || !gid) return;
+  if (document.visibilityState !== 'visible' || !gid || banned()) return;
   if (!items.some((i) => 'item_views' in i)) return;
   const rows = items.filter((i) => i.author_id !== user.id && !(i.item_views || []).some((v) => v.user_id === user.id))
     .map((i) => ({ item_id: i.id, user_id: user.id, user_name: myName() }));
@@ -446,7 +510,7 @@ async function markSeen() {
   const { error } = await sb.from('item_views').upsert(rows, { onConflict: 'item_id,user_id', ignoreDuplicates: true });
   if (error) console.error('Vu par :', error);
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { load(); refreshRoster(); } });
 
 // ---------- AJOUT (envoi optimiste : ✓ gris -> ✓✓ vert) ----------
 async function send(p) {
@@ -458,9 +522,10 @@ async function send(p) {
 function addItem() {
   const input = $('#iText'), text = input.value.trim();
   if (!text) return;
+  if (banned()) return fail('Vous êtes banni de ce groupe : envoi impossible.');
   if (!gid || !user) return fail('Aucun groupe sélectionné : créez ou rejoignez un groupe (bouton 👥).');
   const p = { id: crypto.randomUUID(), group_id: gid, text, urgent: $('#iUrg').checked, author_id: user.id, author_name: myName(), created_at: new Date().toISOString(), item_views: [] };
-  pend.push(p); input.value = ''; $('#iUrg').checked = false; input.focus(); appErr();
+  pend.push(p); scrollEnd(); input.value = ''; $('#iUrg').checked = false; input.focus(); appErr();
   send(p);
 }
 $('#addForm').addEventListener('submit', (e) => { e.preventDefault(); addItem(); });
