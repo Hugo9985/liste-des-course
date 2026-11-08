@@ -262,7 +262,7 @@ async function loadProfiles(ids) {
   (data || []).forEach((p) => { prof[p.id] = p; delete missAt[p.id]; });
 }
 const myName = () => user?.user_metadata?.name || 'Anonyme';
-const dbg = () => ($('#dbg').textContent = 'v10 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
+const dbg = () => ($('#dbg').textContent = 'v11 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
 
 // ---------- THÈME & SON ----------
 const root = document.documentElement;
@@ -461,8 +461,8 @@ const fmtT = (d) => {
 };
 // ---------- DÉTECTION DE PRODUITS (Open Food Facts + Open Beauty Facts + Open Products Facts) ----------
 const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
-const CATS = { urgent: { e: '🔴', n: 'Urgents' }, fresh: { e: '🍎', n: 'Frais & Alimentaire' }, sweet: { e: '🍫', n: 'Sucré & Snacks' }, drinks: { e: '🥤', n: 'Boissons' },
-  home: { e: '🧹', n: 'Produits Ménagers' }, hygiene: { e: '🧴', n: 'Hygiène & Beauté' }, frozen: { e: '🧊', n: 'Surgelés' }, other: { e: '📦', n: 'Autre' } };
+const CATS = { urgent: { e: '🔴', n: 'Urgents' }, fresh: { e: '🍎', n: 'Alimentaire & Frais' }, sweet: { e: '🍫', n: 'Sucré & Snacks' }, drinks: { e: '🥤', n: 'Boissons' },
+  home: { e: '🧹', n: 'Produits Ménagers' }, hygiene: { e: '🧴', n: 'Hygiène & Soins' }, frozen: { e: '❄️', n: 'Surgelés' }, other: { e: '📦', n: 'Autre' } };
 const ORDER = ['fresh', 'sweet', 'drinks', 'home', 'hygiene', 'frozen', 'other'];
 // Dictionnaire de secours local (hors ligne ou produit introuvable)
 const KW = {
@@ -491,12 +491,28 @@ async function fetchDb(d, q) {
     return p ? { db: d.k, name: p.product_name.trim(), brand: (p.brands || '').split(',')[0].trim(), image: p.image_front_small_url || p.image_small_url || null, tags: p.categories_tags || [] } : null;
   } catch (_) { return null; } finally { clearTimeout(t); }
 }
-async function lookup(q) {
+// IA (Groq, llama-3.1-8b-instant) via la fonction Edge « classify-item » : la clé reste côté serveur
+async function askAI(q) {
   if (!navigator.onLine) return null;
-  const lc = localCategory(q), order = lc === 'hygiene' ? [1, 2, 0] : lc === 'home' ? [2, 0, 1] : [0, 2, 1];
-  const res = await Promise.all(DBS.map((d) => fetchDb(d, q)));
-  for (const i of order) if (res[i]) return res[i];
-  return null;
+  try {
+    const r = await Promise.race([sb.functions.invoke('classify-item', { body: { text: q } }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('délai dépassé')), 4000))]);
+    const d = r.data;
+    if (r.error || !d?.product_label) return null;
+    return { product_label: d.product_label, category: CATS[d.category] && d.category !== 'urgent' ? d.category : 'other', search_query_off: d.search_query_off || d.product_label };
+  } catch (e) { console.warn('IA indisponible, secours local :', e.message); return null; }
+}
+async function lookup(q) {
+  const ai = await askAI(q), term = ai?.search_query_off || q;     // 1) l'IA nettoie le texte et classe l'article
+  let m = null;
+  if (navigator.onLine) {                                            // 2) Open Food Facts (ou Beauty / Products) avec la requête optimisée
+    const lc = ai ? ai.category : localCategory(q), order = lc === 'hygiene' ? [1, 0] : lc === 'home' ? [2, 0] : [0, 2];
+    const res = await Promise.all(order.map((i) => fetchDb(DBS[i], term)));
+    m = res.find((x) => x?.image) || res.find(Boolean) || null;
+  }
+  let category = ai ? ai.category : localCategory(q);                 // 3) sans IA : dictionnaire local
+  if (!ai && m && category === 'other') category = m.db === 'beauty' ? 'hygiene' : m.db === 'products' ? 'home' : 'fresh';
+  return { ai, db: m, category, image: m?.image || null };            // image null si rien trouvé -> ajout manuel (📷)
 }
 const detectP = new Map(), detectDone = new Map();
 function detect(q) {
@@ -504,32 +520,21 @@ function detect(q) {
   if (!detectP.has(key)) detectP.set(key, lookup(q).then((r) => (detectDone.set(key, r), r)).catch(() => (detectDone.set(key, null), null)));
   return detectP.get(key);
 }
-function finalCategory(q, m) {
-  const lc = localCategory(q);
-  if (!m) return lc;
-  if (m.db === 'beauty') return 'hygiene';
-  if (m.db === 'products') return lc === 'other' || lc === 'fresh' ? 'home' : lc;
-  const has = (...xs) => xs.some((x) => m.tags.includes('en:' + x));
-  if (has('frozen-foods')) return 'frozen';
-  if (has('beverages', 'waters', 'sodas', 'carbonated-drinks', 'fruit-juices', 'juices-and-nectars', 'beers', 'wines', 'alcoholic-beverages', 'non-alcoholic-beverages', 'teas', 'coffees')) return 'drinks';
-  if (has('snacks', 'sweet-snacks', 'chocolates', 'cocoa-and-its-products', 'confectioneries', 'biscuits-and-cakes', 'biscuits', 'cakes', 'sweet-spreads', 'candies', 'chocolate-spreads', 'hazelnut-spreads')) return 'sweet';
-  return lc !== 'other' ? lc : 'fresh';
-}
-function applyMatch(q, m) {
-  const label = m ? (m.brand && norm(m.name) !== norm(m.brand) ? `${m.name} · ${m.brand}` : m.name) : null;
-  return { category: finalCategory(q, m), image_url: m?.image || null, product_label: label && norm(label) !== norm(q) ? label : null };
+function applyMatch(q, r) {
+  const lab = r?.ai?.product_label || (r?.db ? (r.db.brand && norm(r.db.name) !== norm(r.db.brand) ? `${r.db.name} · ${r.db.brand}` : r.db.name) : null);
+  return { category: r?.category || localCategory(q), image_url: r?.image || null, product_label: lab && norm(lab) !== norm(q) ? lab : null };
 }
 function showSugg(q, m) {
   const a = applyMatch(q, m), c = CATS[a.category];
-  $('#sugg').innerHTML = `<span class="pe">${c.e}${a.image_url ? `<img src="${esc(a.image_url)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span><span>${esc(a.product_label || q)}<small>${c.e} ${esc(c.n)}${m ? '' : ' · détection locale'}</small></span>`;
+  $('#sugg').innerHTML = `<span class="pe">${c.e}${a.image_url ? `<img src="${esc(a.image_url)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span><span>${esc(a.product_label || q)}<small>${c.e} ${esc(c.n)}${m?.ai ? ' · ✨ IA' : m ? '' : ' · détection locale'}</small></span>`;
   show('#sugg', true);
 }
 let sTimer;
 $('#iText').addEventListener('input', () => {
   clearTimeout(sTimer); const q = $('#iText').value.trim();
-  if (q.length < 3) return show('#sugg', false);
+  if (q.length < 4) return show('#sugg', false);
   showSugg(q, detectDone.get(norm(q)) || null);
-  sTimer = setTimeout(async () => { const m = await detect(q); if ($('#iText').value.trim() === q) showSugg(q, m); }, 450);
+  sTimer = setTimeout(async () => { const m = await detect(q); if ($('#iText').value.trim() === q) showSugg(q, m); }, 1000);
 });
 
 // ---------- RENDU PAR RAYON ----------

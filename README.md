@@ -54,3 +54,11 @@ SQL Editor -> coller `supabase/fix_profiles.sql` -> Run (après update_v8.sql). 
 ## v10 : produits, rayons, MP modifiables
 SQL Editor -> coller `supabase/update_v10.sql` -> Run (après update_v8.sql). Redéployer + réinstaller l'app.
 Détection : Open Food Facts / Open Beauty Facts / Open Products Facts (appelées depuis le navigateur), repli sur un dictionnaire local.
+
+## v11 : mini-IA Groq (llama-3.1-8b-instant)
+1. Créez une clé gratuite sur https://console.groq.com (ne la collez JAMAIS dans l'application ni dans un chat).
+2. `supabase secrets set GROQ_API_KEY=gsk_votre_cle`
+3. `supabase functions deploy classify-item --no-verify-jwt` (la fonction vérifie elle-même que l'utilisateur est connecté)
+4. SQL Editor -> `supabase/verify_v11.sql` -> Run : toutes les lignes du rapport doivent afficher ok = true.
+5. Redéployer le dossier et réinstaller l'app.
+Sans IA (clé absente, hors ligne, délai dépassé) l'app retombe sur Open Food Facts + dictionnaire local : l'ajout n'est jamais bloqué.
