@@ -3,5 +3,7 @@ self.APP = {
   supabaseUrl: "https://gdaltmiyflupgihectin.supabase.co",
   supabaseKey: "sb_publishable_v4movyWxZXHctnvE9SvQWw_fgk7_CIM",
   // Clé PUBLIQUE VAPID (générée avec : npx web-push generate-vapid-keys)
-  vapidPublicKey: "VOTRE_CLE_PUBLIQUE_VAPID"
+  vapidPublicKey: "VOTRE_CLE_PUBLIQUE_VAPID",
+  // Clé Groq (IA d'auto-détection). ⚠️ Visible par quiconque ouvre le site : supprimez-la ou renouvelez-la si besoin.
+  groqKey: "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"
 };

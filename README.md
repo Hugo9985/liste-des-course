@@ -62,3 +62,6 @@ Détection : Open Food Facts / Open Beauty Facts / Open Products Facts (appelée
 4. SQL Editor -> `supabase/verify_v11.sql` -> Run : toutes les lignes du rapport doivent afficher ok = true.
 5. Redéployer le dossier et réinstaller l'app.
 Sans IA (clé absente, hors ligne, délai dépassé) l'app retombe sur Open Food Facts + dictionnaire local : l'ajout n'est jamais bloqué.
+
+## v12 : clé Groq intégrée
+La clé est dans `config.js` (champ `groqKey`). Pour la retirer/renouveler : modifiez ou supprimez cette ligne ; sans clé l'app utilise la fonction Edge `classify-item`, puis le dictionnaire local.
