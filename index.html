@@ -70,7 +70,8 @@ li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{conte
 .pick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}.pick button{width:42px;height:42px;padding:0;font-size:1.4rem;background:var(--bg);box-shadow:none;border-radius:50%}.pick button.on{outline:3px solid var(--pr)}
 .ei{width:100%;margin:0!important;padding:6px 10px!important;border-radius:10px!important;background:var(--bg)}
 .act{background:none;box-shadow:none;color:var(--mu);padding:2px 6px;font-size:.95rem}
-.mem{display:flex;align-items:center;gap:10px;padding:7px 0}.mem .n{flex:1}.role{font-size:.68rem;font-weight:800;background:var(--pr);color:#fff;border-radius:99px;padding:3px 9px}
+.mem{display:flex;align-items:center;gap:10px;padding:7px 0}.mem .n{flex:1}.role.mb{background:var(--bd);color:var(--mu)}
+.role{font-size:.68rem;font-weight:800;background:var(--pr);color:#fff;border-radius:99px;padding:3px 9px}
 .chk{display:flex;gap:8px;align-items:center;color:var(--mu);margin-bottom:10px}.chk input{width:20px;height:20px}
 #toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translate(-50%,-90px);z-index:50;background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:.88rem;max-width:90%;transition:transform .4s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #toast.on{transform:translate(-50%,0)}
@@ -128,7 +129,7 @@ li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{conte
     <input id="mPass" type="password" placeholder="Nouveau mot de passe (vide = inchangé)">
     <label class="chk"><input id="mRm" type="checkbox"> Retirer le mot de passe</label>
     <button id="mGo" class="full">Enregistrer</button></div>
-  <div id="members" class="card hidden"><h2>Membres</h2><div id="mList"></div></div>
+  <div id="members" class="card hidden"><h2 id="mTitle">Membres du groupe</h2><div id="mList"></div></div>
   <div class="card"><h2>Créer un groupe</h2>
     <input id="cName" type="text" placeholder="Nom du groupe">
     <input id="cPass" type="password" placeholder="Mot de passe (optionnel)">
@@ -192,7 +193,7 @@ async function loadProfiles(ids) {
   (data || []).forEach((p) => (prof[p.id] = p)); need.forEach((id) => { if (!prof[id]) prof[id] = { id }; });
 }
 const myName = () => user?.user_metadata?.name || 'Anonyme';
-const dbg = () => ($('#dbg').textContent = 'v5 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
+const dbg = () => ($('#dbg').textContent = 'v6 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
 
 // ---------- THÈME & SON ----------
 const root = document.documentElement;
@@ -386,14 +387,23 @@ $('#items').onclick = async (e) => {
 
 // ---------- MEMBRES & ADMIN DU GROUPE ----------
 async function loadMembers() {
-  show('#manage', false); show('#members', false); if (!gid) return;
-  const { data, error } = await sb.from('group_members').select('user_id,role').eq('group_id', gid);
-  if (error) return gerr(error.message);
-  await loadProfiles(data.map((m) => m.user_id));
-  $('#mList').innerHTML = data.sort((a, b) => (b.role === 'admin') - (a.role === 'admin')).map((m) =>
-    `<div class="mem" data-u="${m.user_id}">${av(m.user_id)}<div class="n">${esc(nm(m.user_id))}${m.user_id === user.id ? ' (vous)' : ''}</div>` +
-    (m.role === 'admin' ? '<span class="role">👑 ADMIN</span>' : isAdmin() ? '<button class="sec promo" style="padding:7px 11px;font-size:.8rem">Promouvoir admin</button>' : '') + '</div>').join('');
-  show('#members', true);
+  show('#manage', false); show('#members', true);
+  if (!gid) { $('#mList').innerHTML = ''; return; }
+  $('#mList').innerHTML = '<p class="mu">Chargement…</p>';
+  // Jointure group_members -> profiles (clé étrangère group_members_user_id_profiles_fkey)
+  let { data, error } = await sb.from('group_members').select('user_id, role, profiles(id,name,avatar_url)').eq('group_id', gid);
+  if (error) {                       // secours : deux requêtes séparées
+    console.warn('Jointure profiles indisponible :', error.message);
+    ({ data, error } = await sb.from('group_members').select('user_id, role').eq('group_id', gid));
+    if (!error) await loadProfiles(data.map((m) => m.user_id));
+  } else data.forEach((m) => { prof[m.user_id] = m.profiles || prof[m.user_id] || { id: m.user_id }; });
+  if (error) { $('#mList').innerHTML = `<p class="err">Membres illisibles : ${esc(error.message)}</p>`; return console.error(error); }
+  data.sort((a, b) => (b.role === 'admin') - (a.role === 'admin') || nm(a.user_id).localeCompare(nm(b.user_id)));
+  $('#mTitle').textContent = `Membres du groupe (${data.length})`;
+  $('#mList').innerHTML = data.map((m) =>
+    `<div class="mem" data-u="${m.user_id}">${av(m.user_id)}<div class="n">${esc(nm(m.user_id, 'Membre'))}${m.user_id === user.id ? ' (vous)' : ''}</div>` +
+    (m.role === 'admin' ? '<span class="role">👑 Admin</span>' : '<span class="role mb">Membre</span>' +
+      (isAdmin() ? '<button class="sec promo" style="padding:7px 11px;font-size:.8rem">Promouvoir</button>' : '')) + '</div>').join('');
   if (isAdmin()) { $('#mName').value = groups.find((g) => g.id === gid)?.name || ''; $('#mPass').value = ''; $('#mRm').checked = false; show('#manage', true); }
 }
 $('#mList').onclick = async (e) => {

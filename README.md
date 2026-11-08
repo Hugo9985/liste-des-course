@@ -47,3 +47,6 @@ La clé `sb_publishable_…` est faite pour être publique. Les données sont pr
 1. SQL Editor → coller **tout** `supabase/update_v5.sql` → Run.
 2. Créez d'abord le compte `charton.hugo1001@gmail.com` (super-admin), puis activez *Confirm email* dans Authentication.
 3. Redéployez le dossier et réinstallez l'app.
+
+## Mise à jour v6 (liste des membres)
+SQL Editor -> coller `supabase/update_v6.sql` -> Run, puis redéployer.
