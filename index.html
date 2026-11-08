@@ -18,7 +18,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;color:var(--tx);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif}
 body{background-color:var(--bg);background-image:radial-gradient(rgba(127,127,127,.1) 1px,transparent 1px);background-size:18px 18px;min-height:100vh}
-main{max-width:620px;margin:0 auto;padding:0 12px 96px}
+main{max-width:620px;margin:0 auto;padding:0 12px 150px}
 #app{padding-top:calc(env(safe-area-inset-top) + 66px)}
 .hidden{display:none!important}
 .card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:var(--sh)}
@@ -100,6 +100,13 @@ li.urgent .bub{outline:2px solid var(--rd);box-shadow:0 0 0 4px rgba(255,59,48,.
 #dText{margin:0;flex:1;border-radius:99px;padding:12px 16px;background:var(--card)}
 #dForm button{width:46px;height:46px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
 .sbtn{margin-top:8px}.sbtn.red{background:var(--rd)}
+.pe{position:relative;width:44px;height:44px;border-radius:10px;background:var(--bg);display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;flex:none;overflow:hidden}
+.pe img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tx small.pl{display:block;color:var(--mu);font-size:.72rem;margin-top:1px}
+li.sec{display:block;text-align:center;font-size:.76rem;font-weight:700;color:var(--mu);letter-spacing:.3px;margin:16px 0 6px;max-height:none;animation:none}
+#sugg{max-width:620px;margin:0 auto 6px;display:flex;align-items:center;gap:10px;background:var(--card);border-radius:12px;padding:6px 10px;box-shadow:var(--sh);font-size:.86rem}
+#sugg .pe{width:36px;height:36px;font-size:1.2rem}#sugg small{display:block;color:var(--mu);font-size:.72rem}
+.dm button.act{background:none;box-shadow:none;color:var(--mu);padding:0 3px;font-size:.85rem}
 </style>
 </head>
 <body>
@@ -137,6 +144,7 @@ li.urgent .bub{outline:2px solid var(--rd);box-shadow:0 0 0 4px rgba(255,59,48,.
       <p id="dbg"></p>
     </div>
     <div id="composer">
+      <div id="sugg" class="hidden"></div>
       <form id="addForm" autocomplete="off">
         <input id="iText" type="text" placeholder="Ajouter un article…" maxlength="120" enterkeyhint="send">
         <label class="chip"><input id="iUrg" type="checkbox"><span>🔴 Urgent</span></label>
@@ -183,6 +191,7 @@ li.urgent .bub{outline:2px solid var(--rd);box-shadow:0 0 0 4px rgba(255,59,48,.
     <button id="pSave" class="full">Enregistrer</button><p id="pErr" class="err"></p></div>
   <button id="snd" class="sec full" style="margin-bottom:8px"></button>
   <button id="theme" class="sec full" style="margin-bottom:8px">🌗 Changer de thème</button>
+  <button id="upd" class="sec full" style="margin-bottom:8px">🔄 Vider le cache et recharger</button>
   <button id="out" class="sec full" style="margin-bottom:8px">⏻ Se déconnecter</button>
   <button id="pClose" class="sec full">Fermer</button>
 </div></div>
@@ -226,7 +235,9 @@ let user, groups = [], items = [], pend = [], prof = {}, roster = [], alias = {}
 const SUPER = 'charton.hugo1001@gmail.com';   // l'autorité réelle est la base de données (RLS)
 const isSuper = () => user?.email?.toLowerCase() === SUPER;
 const isAdmin = () => isSuper() || groups.find((g) => g.id === gid)?.role === 'admin';
-const nm = (id, fb) => alias[id] || prof[id]?.name || (id === user?.id ? (user.email || '').split('@')[0] : '') || fb || 'Utilisateur';
+// Nom affiché : nom donné par un admin > pseudo du profil > début de l'email > repli > 'Membre'
+const displayName = (id, fb) => alias[id] || prof[id]?.name || (id === user?.id ? (user.email || '').split('@')[0] : '') || fb || 'Membre';
+const nm = displayName;
 function av(id, fb, cls = '') {
   const a = prof[id]?.avatar_url || '', url = /^https?:\/\//.test(a);
   return `<span class="av ${cls}" data-u="${id}">${url || !a ? esc(nm(id, fb).charAt(0).toUpperCase()) : esc(a)}${url ? `<img src="${esc(a)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
@@ -241,12 +252,17 @@ async function loadProfiles(ids) {
   const now = Date.now(), need = [...new Set(ids)].filter((id) => id && !prof[id]?.name && now - (missAt[id] || 0) > 20000);
   if (!need.length) return;
   need.forEach((id) => (missAt[id] = now));
-  const { data, error } = await sb.from('profiles').select('id,name,avatar_url,show_email,is_banned_definitively,banned_until').in('id', need);
+  // 1) fonction serveur (LEFT JOIN sur auth.users : jamais de nom vide) ; 2) secours : lecture directe de la table
+  let { data, error } = await sb.rpc('get_profiles', { p_ids: need });
+  if (error) {
+    console.warn('get_profiles indisponible :', error.message);
+    ({ data, error } = await sb.from('profiles').select('id,name,avatar_url,show_email,is_banned_definitively,banned_until').in('id', need));
+  }
   if (error) return console.warn('Profils illisibles :', error.message);
   (data || []).forEach((p) => { prof[p.id] = p; delete missAt[p.id]; });
 }
 const myName = () => user?.user_metadata?.name || 'Anonyme';
-const dbg = () => ($('#dbg').textContent = 'v9 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
+const dbg = () => ($('#dbg').textContent = 'v10 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
 
 // ---------- THÈME & SON ----------
 const root = document.documentElement;
@@ -361,15 +377,17 @@ function applyBan() {
 async function refreshRoster() {
   if (!gid) { roster = []; alias = {}; return setHead(); }
   const cols = 'user_id, role, custom_display_name, is_banned_definitively, banned_until';
-  // Jointure explicite group_members -> profiles (nom + avatar de chaque membre)
-  let { data, error } = await sb.from('group_members').select(cols + ', profiles!group_members_user_id_profiles_fkey(id,name,avatar_url,show_email,is_banned_definitively,banned_until)').eq('group_id', gid);
-  if (error) {
-    console.warn('Jointure profiles indisponible :', error.message);
-    ({ data, error } = await sb.from('group_members').select(cols).eq('group_id', gid));
-    if (!error) await loadProfiles(data.map((m) => m.user_id));
-  } else {   // profiles = LEFT JOIN : null si le profil n'existe pas encore -> relu séparément
-    data.forEach((m) => { const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles; if (p?.name) prof[m.user_id] = p; });
-    await loadProfiles(data.map((m) => m.user_id));
+  // 1) fonction serveur : LEFT JOIN group_members -> profiles, nom + avatar toujours renseignés
+  let { data, error } = await sb.rpc('get_group_roster', { p_group: gid });
+  if (!error && data?.length) {
+    data.forEach((m) => { prof[m.user_id] = { ...(prof[m.user_id] || {}), id: m.user_id, name: m.name, avatar_url: m.avatar_url }; });
+  } else {   // 2) secours : jointure PostgREST via la clé user_id -> profiles(id)
+    ({ data, error } = await sb.from('group_members').select(cols + ', profiles!group_members_user_id_profiles_fkey(id,name,avatar_url)').eq('group_id', gid));
+    if (error) ({ data, error } = await sb.from('group_members').select(cols).eq('group_id', gid));
+    if (!error) {
+      data.forEach((m) => { const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles; if (p?.name) prof[m.user_id] = { ...(prof[m.user_id] || {}), ...p }; });
+      await loadProfiles(data.map((m) => m.user_id));
+    }
   }
   if (error) { rosterErr = error.message; console.error(error); setHead(); return renderMembers(); }
   rosterErr = ''; roster = data; alias = {};
@@ -441,34 +459,145 @@ const fmtT = (d) => {
   const x = new Date(d), t = x.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   return x.toDateString() === new Date().toDateString() ? t : x.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + t;
 };
+// ---------- DÉTECTION DE PRODUITS (Open Food Facts + Open Beauty Facts + Open Products Facts) ----------
+const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const CATS = { urgent: { e: '🔴', n: 'Urgents' }, fresh: { e: '🍎', n: 'Frais & Alimentaire' }, sweet: { e: '🍫', n: 'Sucré & Snacks' }, drinks: { e: '🥤', n: 'Boissons' },
+  home: { e: '🧹', n: 'Produits Ménagers' }, hygiene: { e: '🧴', n: 'Hygiène & Beauté' }, frozen: { e: '🧊', n: 'Surgelés' }, other: { e: '📦', n: 'Autre' } };
+const ORDER = ['fresh', 'sweet', 'drinks', 'home', 'hygiene', 'frozen', 'other'];
+// Dictionnaire de secours local (hors ligne ou produit introuvable)
+const KW = {
+  frozen: 'surgele glace sorbet nuggets',
+  hygiene: 'dentifrice shampoing shampooing savon douche deodorant brosse dents coton mouchoir rasoir tampon serviette hygienique demaquillant parfum',
+  home: 'sopalin essuie lessive vaisselle eponge javel nettoyant poubelle adoucissant detergent lingette menager aluminium papier toilette ampoule pile',
+  drinks: 'eau coca cola pepsi jus soda biere vin limonade sirop the cafe orangina fanta sprite perrier evian vittel badoit redbull boisson champagne whisky vodka rhum cidre tisane',
+  sweet: 'sucre sucree bonbon chocolat nutella chips snack biscuit gateau cookie confiture miel madeleine kinder haribo barre cereales dessert tartiner',
+  fresh: 'pain lait oeuf fromage yaourt beurre viande poulet jambon legume fruit pomme banane tomate salade riz pate farine huile sel poisson steak carotte oignon ail patate courgette saucisse lardons creme' };
+const KWS = Object.fromEntries(Object.entries(KW).map(([k, v]) => [k, v.split(' ')]));
+function localCategory(text) {
+  const toks = norm(text).split(' ');
+  for (const c of ['frozen', 'hygiene', 'home', 'drinks', 'sweet', 'fresh'])
+    if (KWS[c].some((k) => toks.some((t) => t === k || (k.length > 3 && t.startsWith(k))))) return c;
+  return 'other';
+}
+const DBS = [{ k: 'food', u: 'https://fr.openfoodfacts.org' }, { k: 'beauty', u: 'https://fr.openbeautyfacts.org' }, { k: 'products', u: 'https://fr.openproductsfacts.org' }];
+async function fetchDb(d, q) {
+  const c = new AbortController(), t = setTimeout(() => c.abort(), 3500);
+  try {
+    const r = await fetch(`${d.u}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=8&fields=product_name,brands,categories_tags,image_front_small_url,image_small_url`, { signal: c.signal });
+    if (!r.ok) return null;
+    const toks = norm(q).split(' ').filter((w) => w.length >= 3);
+    const list = ((await r.json()).products || []).filter((p) => p.product_name && (!toks.length || toks.some((w) => norm(p.product_name + ' ' + (p.brands || '')).includes(w))));
+    const p = list.find((x) => x.image_front_small_url || x.image_small_url) || list[0];
+    return p ? { db: d.k, name: p.product_name.trim(), brand: (p.brands || '').split(',')[0].trim(), image: p.image_front_small_url || p.image_small_url || null, tags: p.categories_tags || [] } : null;
+  } catch (_) { return null; } finally { clearTimeout(t); }
+}
+async function lookup(q) {
+  if (!navigator.onLine) return null;
+  const lc = localCategory(q), order = lc === 'hygiene' ? [1, 2, 0] : lc === 'home' ? [2, 0, 1] : [0, 2, 1];
+  const res = await Promise.all(DBS.map((d) => fetchDb(d, q)));
+  for (const i of order) if (res[i]) return res[i];
+  return null;
+}
+const detectP = new Map(), detectDone = new Map();
+function detect(q) {
+  const key = norm(q);
+  if (!detectP.has(key)) detectP.set(key, lookup(q).then((r) => (detectDone.set(key, r), r)).catch(() => (detectDone.set(key, null), null)));
+  return detectP.get(key);
+}
+function finalCategory(q, m) {
+  const lc = localCategory(q);
+  if (!m) return lc;
+  if (m.db === 'beauty') return 'hygiene';
+  if (m.db === 'products') return lc === 'other' || lc === 'fresh' ? 'home' : lc;
+  const has = (...xs) => xs.some((x) => m.tags.includes('en:' + x));
+  if (has('frozen-foods')) return 'frozen';
+  if (has('beverages', 'waters', 'sodas', 'carbonated-drinks', 'fruit-juices', 'juices-and-nectars', 'beers', 'wines', 'alcoholic-beverages', 'non-alcoholic-beverages', 'teas', 'coffees')) return 'drinks';
+  if (has('snacks', 'sweet-snacks', 'chocolates', 'cocoa-and-its-products', 'confectioneries', 'biscuits-and-cakes', 'biscuits', 'cakes', 'sweet-spreads', 'candies', 'chocolate-spreads', 'hazelnut-spreads')) return 'sweet';
+  return lc !== 'other' ? lc : 'fresh';
+}
+function applyMatch(q, m) {
+  const label = m ? (m.brand && norm(m.name) !== norm(m.brand) ? `${m.name} · ${m.brand}` : m.name) : null;
+  return { category: finalCategory(q, m), image_url: m?.image || null, product_label: label && norm(label) !== norm(q) ? label : null };
+}
+function showSugg(q, m) {
+  const a = applyMatch(q, m), c = CATS[a.category];
+  $('#sugg').innerHTML = `<span class="pe">${c.e}${a.image_url ? `<img src="${esc(a.image_url)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span><span>${esc(a.product_label || q)}<small>${c.e} ${esc(c.n)}${m ? '' : ' · détection locale'}</small></span>`;
+  show('#sugg', true);
+}
+let sTimer;
+$('#iText').addEventListener('input', () => {
+  clearTimeout(sTimer); const q = $('#iText').value.trim();
+  if (q.length < 3) return show('#sugg', false);
+  showSugg(q, detectDone.get(norm(q)) || null);
+  sTimer = setTimeout(async () => { const m = await detect(q); if ($('#iText').value.trim() === q) showSugg(q, m); }, 450);
+});
+
+// ---------- RENDU PAR RAYON ----------
 function render() {
   const ids = new Set(items.map((i) => i.id));
-  const all = [...pend.filter((p) => p.group_id === gid && !ids.has(p.id)), ...items]   // urgents non achetés en haut, puis ordre chronologique
-    .sort((a, b) => ((a.urgent && !a.done) ? 0 : 1) - ((b.urgent && !b.done) ? 0 : 1) || new Date(a.created_at) - new Date(b.created_at));
-  const ul = $('#items'), keep = new Set(all.map((i) => i.id));
+  const all = [...pend.filter((p) => p.group_id === gid && !ids.has(p.id)), ...items].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const sec = {};
+  all.forEach((i) => { const k = i.urgent && !i.done ? 'urgent' : (CATS[i.category] && i.category !== 'urgent' ? i.category : localCategory(i.text)); (sec[k] = sec[k] || []).push(i); });
+  const entries = [];
+  ['urgent', ...ORDER].forEach((k) => { if (sec[k]) { entries.push({ h: k, n: sec[k].length }); sec[k].forEach((i) => entries.push({ i })); } });
+  const ul = $('#items'), keep = new Set(entries.map((e) => (e.h ? 'sec-' + e.h : e.i.id)));
   [...ul.children].forEach((li) => { if (!keep.has(li.dataset.id) && !li.classList.contains('out')) { li.classList.add('out'); setTimeout(() => li.remove(), 260); } });
   let prev = null;
-  all.forEach((i) => {
-    const mine = i.author_id === user.id, can = mine || isAdmin(), pa = prof[i.author_id] || {}, who = nm(i.author_id, i.author_name);
-    const seen = (i.item_views || []).filter((v) => v.user_id !== user.id).map((v) => nm(v.user_id, v.user_name));
-    const sig = JSON.stringify([i.text, i.urgent, i.done, i.state || '', seen, can, i.edited_at || '', pa.avatar_url || '', who]);
-    let li = ul.querySelector(`[data-id="${i.id}"]:not(.out)`);
-    if (!li) { li = document.createElement('li'); li.dataset.id = i.id; if (!first) li.classList.add('in'); }
-    if (li.dataset.sig !== sig && editing !== i.id) {
-      li.dataset.sig = sig; li.classList.toggle('me', mine); li.classList.toggle('urgent', !!i.urgent && !i.done); li.classList.toggle('done', !!i.done);
-      const tick = !mine ? '' : i.state === 'sending' ? '<span class="tk" title="Envoi…">✓</span>'
-        : i.state === 'error' ? '<button class="retry">⚠ Réessayer</button>' : '<span class="tk ok" title="Enregistré">✓✓</span>';
-      const seenTxt = seen.length ? `👁 Vu par ${esc(seen.join(', '))}` : mine && !i.state ? 'Pas encore vu' : '';
-      li.innerHTML = `${av(i.author_id, i.author_name)}<div class="bub">
-        <div class="who" data-u="${i.author_id}">${esc(mine ? 'Vous' : who)}${i.urgent ? '<span class="badge">URGENT</span>' : ''}</div>
-        <div class="t"><button class="ck" aria-label="Acheté"></button><span class="tx">${esc(i.text)}</span></div>
-        <div class="ft">${seenTxt ? `<span class="seen">${seenTxt}</span>` : ''}${can && !i.state ? '<button class="act ed" aria-label="Modifier">✎</button>' : ''}${can ? '<button class="act del" aria-label="Supprimer">✕</button>' : ''}<span>${fmtT(i.created_at)}${i.edited_at ? ' · modifié' : ''}</span>${tick}</div></div>`;
+  entries.forEach((en) => {
+    const id = en.h ? 'sec-' + en.h : en.i.id;
+    let li = ul.querySelector(`[data-id="${id}"]:not(.out)`);
+    if (en.h) {
+      if (!li) { li = document.createElement('li'); li.dataset.id = id; li.className = 'sec'; }
+      const t = `${CATS[en.h].e} ${CATS[en.h].n} · ${en.n}`; if (li.textContent !== t) li.textContent = t;
+    } else {
+      const i = en.i, mine = i.author_id === user.id, can = mine || isAdmin(), pa = prof[i.author_id] || {}, who = displayName(i.author_id, i.author_name);
+      const seen = (i.item_views || []).filter((v) => v.user_id !== user.id).map((v) => displayName(v.user_id, v.user_name));
+      const cat = CATS[i.category] && i.category !== 'urgent' ? i.category : localCategory(i.text);
+      const img = i.image_url && /^(https:\/\/|data:image\/)/.test(i.image_url) ? i.image_url : '';
+      const sig = JSON.stringify([i.text, i.urgent, i.done, i.state || '', seen, can, i.edited_at || '', pa.avatar_url || '', who, cat, img.length, i.product_label || '']);
+      if (!li) { li = document.createElement('li'); li.dataset.id = id; if (!first) li.classList.add('in'); }
+      if (li.dataset.sig !== sig && editing !== i.id) {
+        li.dataset.sig = sig; li.classList.toggle('me', mine); li.classList.toggle('urgent', !!i.urgent && !i.done); li.classList.toggle('done', !!i.done);
+        const tick = !mine ? '' : i.state === 'sending' ? '<span class="tk" title="Envoi…">✓</span>'
+          : i.state === 'error' ? '<button class="retry">⚠ Réessayer</button>' : '<span class="tk ok" title="Enregistré">✓✓</span>';
+        const seenTxt = seen.length ? `👁 Vu par ${esc(seen.join(', '))}` : mine && !i.state ? 'Pas encore vu' : '';
+        const thumb = `<span class="pe">${CATS[cat].e}${img ? `<img src="${esc(img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
+        li.innerHTML = `${av(i.author_id, i.author_name)}<div class="bub">
+          <div class="who" data-u="${i.author_id}">${esc(mine ? 'Vous' : who)}${i.urgent ? '<span class="badge">URGENT</span>' : ''}</div>
+          <div class="t"><button class="ck" aria-label="Acheté"></button>${thumb}<span class="tx">${esc(i.text)}${i.product_label ? `<small class="pl">🔎 ${esc(i.product_label)}</small>` : ''}</span></div>
+          <div class="ft">${seenTxt ? `<span class="seen">${seenTxt}</span>` : ''}${can && !i.state && !img ? '<button class="act pho" aria-label="Ajouter une photo">📷</button>' : ''}${can && !i.state ? '<button class="act ed" aria-label="Modifier">✎</button>' : ''}${can ? '<button class="act del" aria-label="Supprimer">✕</button>' : ''}<span>${fmtT(i.created_at)}${i.edited_at ? ' · modifié' : ''}</span>${tick}</div></div>`;
+      }
     }
     ul.insertBefore(li, prev ? prev.nextSibling : ul.firstChild); prev = li;
   });
   todoN = all.filter((i) => !i.done).length; setHead();
   show('#empty', !all.length && !banned()); dbg();
 }
+
+// Photo manuelle : lien https ou photo du téléphone (réduite à 160 px)
+async function setImage(id, image_url) {
+  const it = items.find((x) => x.id === id); if (it) it.image_url = image_url; render();
+  const { error } = await sb.from('items').update({ image_url }).eq('id', id);
+  if (error) fail('Photo impossible : ' + error.message, error); load();
+}
+function addPhoto(id) {
+  const u = prompt("URL de l’image (https://…)\nLaissez vide pour choisir une photo dans votre téléphone :", '');
+  if (u === null) return;
+  if (u.trim()) return /^https:\/\//.test(u.trim()) ? setImage(id, u.trim()) : toast('⚠️ L’URL doit commencer par https://');
+  const f = document.createElement('input'); f.type = 'file'; f.accept = 'image/*';
+  f.onchange = () => {
+    const file = f.files[0]; if (!file) return; const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, 160 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); setImage(id, c.toDataURL('image/jpeg', 0.72)); };
+    img.src = url;
+  };
+  f.click();
+}
+$('#upd').onclick = async () => {
+  try { (await navigator.serviceWorker.getRegistrations()).forEach((r) => r.unregister()); (await caches.keys()).forEach((k) => caches.delete(k)); } catch (_) {}
+  location.reload();
+};
 
 // Modification rapide (✎ ou double-clic) : Entrée = enregistrer, Échap = annuler
 function startEdit(li) {
@@ -499,6 +628,7 @@ $('#items').onclick = async (e) => {
     const { error } = await sb.from('items').update({ done: it.done }).eq('id', id);
     if (error) fail('Modification impossible : ' + error.message, error); load();
   } else if (e.target.closest('.ed')) startEdit(li);
+  else if (e.target.closest('.pho')) addPhoto(id);
   else if (e.target.closest('.del')) {
     pend = pend.filter((p) => p.id !== id); items = items.filter((x) => x.id !== id); render();
     const { error } = await sb.from('items').delete().eq('id', id);
@@ -627,14 +757,15 @@ async function loadDms() {
 }
 function renderDmList() {
   const c = dmOthers(), unread = c.reduce((n, x) => n + x.unread, 0);
-  $('#dList').innerHTML = c.map((x) => `<button class="grp conv" data-id="${x.id}">${av(x.id)}<span class="n"><b>${esc(nm(x.id, 'Membre'))}</b><small class="mu" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.last.sender_id === user.id ? 'Vous : ' : ''}${esc(x.last.body)}</small></span>${x.unread ? `<span class="nb">${x.unread}</span>` : ''}</button>`).join('');
+  $('#dList').innerHTML = c.map((x) => `<button class="grp conv" data-id="${x.id}">${av(x.id)}<span class="n"><b>${esc(nm(x.id, 'Membre'))}</b><small class="mu" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.last.sender_id === user.id ? 'Vous : ' : ''}${x.last.deleted_at ? 'Message supprimé' : esc(x.last.body)}</small></span>${x.unread ? `<span class="nb">${x.unread}</span>` : ''}</button>`).join('');
   show('#dEmpty', !c.length); $('#dmBadge').textContent = unread; show('#dmBadge', unread > 0);
 }
+let dmEditing = null;
 function renderChat() {
-  if (!dmWith) return;
+  if (!dmWith || dmEditing) return;
   const list = dms.filter((x) => x.sender_id === dmWith || x.recipient_id === dmWith).slice().reverse();
-  $('#dMsgs').innerHTML = list.map((x) => { const me = x.sender_id === user.id;
-    return `<div class="dm ${me ? 'me' : ''}">${esc(x.body)}<small>${fmtT(x.created_at)}${me ? (x.read_at ? ' <span class="tk ok">✓✓</span>' : ' <span class="tk">✓</span>') : ''}</small></div>`; }).join('')
+  $('#dMsgs').innerHTML = list.map((x) => { const me = x.sender_id === user.id, del = !!x.deleted_at;
+    return `<div class="dm ${me ? 'me' : ''}" data-id="${x.id}">${del ? '<i class="mu">🚫 Ce message a été supprimé</i>' : `<span class="tx">${esc(x.body)}</span>`}<small>${fmtT(x.created_at)}${x.edited_at && !del ? ' · (modifié)' : ''}${me && !del ? ` ${x.read_at ? '<span class="tk ok">✓✓</span>' : '<span class="tk">✓</span>'} <button class="act dme" aria-label="Modifier">✎</button><button class="act dmd" aria-label="Supprimer">🗑</button>` : ''}</small></div>`; }).join('')
     || '<p class="mu" style="text-align:center">Écrivez le premier message 👋</p>';
   $('#dMsgs').scrollTop = $('#dMsgs').scrollHeight;
   if ($('#dsheet').classList.contains('open') && dms.some((x) => x.sender_id === dmWith && x.recipient_id === user.id && !x.read_at)) {
@@ -642,6 +773,31 @@ function renderChat() {
     sb.rpc('mark_dm_read', { p_other: dmWith }); renderDmList();
   }
 }
+function editDm(row, m) {
+  dmEditing = m.id; const span = row.querySelector('.tx');
+  span.innerHTML = `<input class="ei" maxlength="1000" value="${esc(m.body)}">`;
+  const inp = span.firstChild; inp.focus(); inp.select();
+  const save = async () => {
+    if (dmEditing !== m.id) return; dmEditing = null;
+    const t = inp.value.trim(); if (!t || t === m.body) return renderChat();
+    m.body = t; m.edited_at = new Date().toISOString(); renderChat();
+    const { error } = await sb.from('private_messages').update({ body: t }).eq('id', m.id);
+    if (error) fail('Modification impossible : ' + error.message, error); loadDms();
+  };
+  inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } else if (e.key === 'Escape') { dmEditing = null; renderChat(); } };
+  inp.onblur = save;
+}
+$('#dMsgs').onclick = async (e) => {
+  const row = e.target.closest('.dm'); if (!row) return;
+  const m = dms.find((x) => x.id === row.dataset.id); if (!m || m.sender_id !== user.id || m.deleted_at) return;
+  if (e.target.closest('.dme')) editDm(row, m);
+  else if (e.target.closest('.dmd')) {
+    if (!confirm('Supprimer ce message pour vous deux ?')) return;
+    m.deleted_at = new Date().toISOString(); m.body = '—'; renderChat();
+    const { error } = await sb.from('private_messages').update({ deleted_at: m.deleted_at, body: '—' }).eq('id', m.id);
+    if (error) fail('Suppression impossible : ' + error.message, error); loadDms();
+  }
+};
 async function openChat(uid) {
   dmWith = uid; await loadProfiles([uid]);
   $('#dName').textContent = nm(uid, 'Membre'); $('#dAv').innerHTML = av(uid);
@@ -682,17 +838,28 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { lo
 // ---------- AJOUT (envoi optimiste : ✓ gris -> ✓✓ vert) ----------
 async function send(p) {
   p.state = 'sending'; render();
-  const { error } = await sb.from('items').insert({ id: p.id, group_id: p.group_id, text: p.text, urgent: p.urgent, author_id: p.author_id, author_name: p.author_name });
+  const { error } = await sb.from('items').insert({ id: p.id, group_id: p.group_id, text: p.text, urgent: p.urgent, author_id: p.author_id, author_name: p.author_name,
+    category: p.category, image_url: p.image_url, product_label: p.product_label });
   if (error) { p.state = 'error'; render(); return fail('Ajout impossible : ' + error.message, error); }
   p.state = 'sent'; render(); load();
+  if (p.needEnrich) enrich(p);   // la recherche en ligne ne bloque jamais l'ajout
+}
+async function enrich(p) {
+  const m = await detect(p.text); if (!m) return;
+  const upd = applyMatch(p.text, m); Object.assign(p, upd);
+  const it = items.find((x) => x.id === p.id); if (it) Object.assign(it, upd); render();
+  const { error } = await sb.from('items').update(upd).eq('id', p.id);
+  if (error) console.warn('Enrichissement :', error.message);
 }
 function addItem() {
-  const input = $('#iText'), text = input.value.trim();
-  if (!text) return;
+  const input = $('#iText'), raw = input.value.trim();
+  if (!raw) return;
   if (banned()) return fail('Vous êtes banni de ce groupe : envoi impossible.');
-  if (!gid || !user) return fail('Aucun groupe sélectionné : créez ou rejoignez un groupe (bouton 👥).');
-  const p = { id: crypto.randomUUID(), group_id: gid, text, urgent: $('#iUrg').checked, author_id: user.id, author_name: myName(), created_at: new Date().toISOString(), item_views: [] };
-  pend.push(p); scrollEnd(); input.value = ''; $('#iUrg').checked = false; input.focus(); appErr();
+  if (!gid || !user) return fail('Aucun groupe sélectionné : créez ou rejoignez un groupe (bouton ⓘ / nom du groupe).');
+  const m = detectDone.get(norm(raw));            // déjà trouvé pendant la frappe ? sinon recherche en arrière-plan
+  const p = { id: crypto.randomUUID(), group_id: gid, text: raw.charAt(0).toUpperCase() + raw.slice(1), urgent: $('#iUrg').checked, author_id: user.id,
+    author_name: myName(), created_at: new Date().toISOString(), item_views: [], ...applyMatch(raw, m || null), needEnrich: m === undefined };
+  pend.push(p); scrollEnd(); input.value = ''; $('#iUrg').checked = false; show('#sugg', false); input.focus(); appErr();
   send(p);
 }
 $('#addForm').addEventListener('submit', (e) => { e.preventDefault(); addItem(); });
