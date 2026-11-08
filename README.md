@@ -50,3 +50,7 @@ La clé `sb_publishable_…` est faite pour être publique. Les données sont pr
 
 ## Correctif profils (v9)
 SQL Editor -> coller `supabase/fix_profiles.sql` -> Run (après update_v8.sql). Redéployer le dossier et réinstaller l'app.
+
+## v10 : produits, rayons, MP modifiables
+SQL Editor -> coller `supabase/update_v10.sql` -> Run (après update_v8.sql). Redéployer + réinstaller l'app.
+Détection : Open Food Facts / Open Beauty Facts / Open Products Facts (appelées depuis le navigateur), repli sur un dictionnaire local.
