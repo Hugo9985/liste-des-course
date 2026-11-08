@@ -43,10 +43,7 @@ La clé `sb_publishable_…` est faite pour être publique. Les données sont pr
 2. `supabase functions deploy notify-urgent --no-verify-jwt` (push à chaque nouvel article).
 3. Redéployer le dossier (Netlify/Vercel), puis réinstaller l'app sur l'écran d'accueil.
 
-## Mise à jour finale (v7) : WhatsApp, membres, modération
-1. SQL Editor -> coller **tout** `supabase/update_v7.sql` -> Run (il inclut les versions précédentes, aucune donnée supprimée).
-2. Créez le compte `charton.hugo1001@gmail.com` (super-admin) puis activez *Confirm email*.
+## Mise à jour finale (v8) : profils, messages privés, Super-Admin
+1. SQL Editor -> coller **tout** `supabase/update_v8.sql` -> Run (inclut toutes les versions précédentes, aucune donnée supprimée).
+2. Créez le compte `charton.hugo1001@gmail.com` (Super-Admin) puis activez *Confirm email*.
 3. `supabase functions deploy notify-urgent --no-verify-jwt`, redéployez le dossier, réinstallez l'app.
-
-### Modérer depuis le tableau de bord Supabase
-Table Editor -> `group_members` : `custom_display_name` (renommer), `is_banned` = true (blocage définitif) ou `banned_until` = date (bannissement temporaire).
