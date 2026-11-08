@@ -84,6 +84,22 @@ li.urgent .bub{outline:2px solid var(--rd);box-shadow:0 0 0 4px rgba(255,59,48,.
 #install{background:var(--pr);color:#fff;text-align:center}
 #toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translate(-50%,-110px);z-index:60;background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:.88rem;max-width:90%;transition:transform .4s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #toast.on{transform:translate(-50%,0)}
+.av.xl{width:96px;height:96px;font-size:2.6rem;margin:0 auto;display:flex}
+[data-u]{cursor:pointer}
+.hb{position:relative}.nb{background:var(--rd);color:#fff;border-radius:99px;font-size:.66rem;font-weight:800;min-width:18px;height:18px;padding:0 5px;display:inline-flex;align-items:center;justify-content:center}
+.hb .nb{position:absolute;top:2px;right:0}
+.info{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);font-size:.92rem}.info span{color:var(--mu)}.info b{text-align:right;word-break:break-all}
+.panel.tall{height:88vh;display:flex;flex-direction:column}
+#dChatV{display:flex;flex-direction:column;flex:1;min-height:0}#dListV{flex:1;overflow:auto}
+.dh{display:flex;align-items:center;gap:10px;padding-bottom:8px}.dh b{flex:1}
+#dMsgs{flex:1;overflow:auto;padding:6px 0}
+.dm{max-width:78%;padding:6px 10px;border-radius:12px 12px 12px 3px;margin-bottom:6px;box-shadow:var(--sh);background:var(--bo);word-break:break-word}
+.dm.me{margin-left:auto;background:var(--bm);border-radius:12px 12px 3px 12px}
+.dm small{display:block;text-align:right;color:var(--mu);font-size:.66rem}
+#dForm{display:flex;gap:8px;align-items:center;padding-top:8px}
+#dText{margin:0;flex:1;border-radius:99px;padding:12px 16px;background:var(--card)}
+#dForm button{width:46px;height:46px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.sbtn{margin-top:8px}.sbtn.red{background:var(--rd)}
 </style>
 </head>
 <body>
@@ -106,6 +122,7 @@ li.urgent .bub{outline:2px solid var(--rd);box-shadow:0 0 0 4px rgba(255,59,48,.
 <section id="app" class="hidden">
   <header class="hd"><div class="hr">
     <div id="hGo" class="hg"><span id="hAv" class="av big">🛒</span><div class="ht"><b id="hName">Courses Ensemble</b><small id="hSub"></small></div></div>
+    <button id="dm" class="hb" title="Messages privés">💬<span id="dmBadge" class="nb hidden"></span></button>
     <button id="bell" class="hb hidden" title="Activer les notifications">🔔</button>
     <button id="prof" class="hb" title="Mon profil">👤</button>
     <button id="info" class="hb" title="Infos du groupe et membres">ⓘ</button>
@@ -162,11 +179,29 @@ li.urgent .bub{outline:2px solid var(--rd);box-shadow:0 0 0 4px rgba(255,59,48,.
     <input id="pName" type="text" placeholder="Pseudo">
     <div id="pPick" class="pick"></div>
     <input id="pUrl" type="text" placeholder="…ou URL d'une photo (https://…)">
+    <label class="chk"><input id="pEmail" type="checkbox"> Afficher mon email aux membres de mes groupes</label>
     <button id="pSave" class="full">Enregistrer</button><p id="pErr" class="err"></p></div>
   <button id="snd" class="sec full" style="margin-bottom:8px"></button>
   <button id="theme" class="sec full" style="margin-bottom:8px">🌗 Changer de thème</button>
   <button id="out" class="sec full" style="margin-bottom:8px">⏻ Se déconnecter</button>
   <button id="pClose" class="sec full">Fermer</button>
+</div></div>
+
+<div id="dsheet" class="sheet"><div class="panel tall">
+  <div class="grab"></div>
+  <div id="dListV"><h2>💬 Messages privés</h2><div id="dList"></div>
+    <p id="dEmpty" class="mu hidden">Aucune discussion. Ouvrez le profil d’un membre pour lui écrire.</p>
+    <button class="sec full" data-close style="margin-top:10px">Fermer</button></div>
+  <div id="dChatV" class="hidden">
+    <div class="dh"><button id="dBack" class="sec" style="padding:8px 14px">‹</button><span id="dAv"></span><b id="dName"></b></div>
+    <div id="dMsgs"></div>
+    <form id="dForm" autocomplete="off"><input id="dText" type="text" placeholder="Message privé…" maxlength="1000"><button type="submit" aria-label="Envoyer"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></form>
+  </div>
+</div></div>
+
+<div id="umodal" class="sheet"><div class="panel">
+  <div class="grab"></div><div id="uBody"></div>
+  <button class="sec full" data-close style="margin-top:10px">Fermer</button>
 </div></div>
 
 <script src="/config.js"></script>
@@ -192,9 +227,9 @@ const SUPER = 'charton.hugo1001@gmail.com';   // l'autorité réelle est la base
 const isSuper = () => user?.email?.toLowerCase() === SUPER;
 const isAdmin = () => isSuper() || groups.find((g) => g.id === gid)?.role === 'admin';
 const nm = (id, fb) => alias[id] || prof[id]?.name || fb || '?';
-function av(id, fb) {
+function av(id, fb, cls = '') {
   const a = prof[id]?.avatar_url || '', url = /^https?:\/\//.test(a);
-  return `<span class="av">${url || !a ? esc(nm(id, fb).charAt(0).toUpperCase()) : esc(a)}${url ? `<img src="${esc(a)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
+  return `<span class="av ${cls}" data-u="${id}">${url || !a ? esc(nm(id, fb).charAt(0).toUpperCase()) : esc(a)}${url ? `<img src="${esc(a)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
 }
 const EMO = ['🐱','🐶','🦊','🐼','🐸','🦁','🐵','🦄','🍎','🥑','🌻','⚡'];
 function picker(box, get, set) {
@@ -203,11 +238,11 @@ function picker(box, get, set) {
 }
 async function loadProfiles(ids) {
   const need = [...new Set(ids)].filter((id) => id && !prof[id]); if (!need.length) return;
-  const { data } = await sb.from('profiles').select('id,name,avatar_url').in('id', need);
+  const { data } = await sb.from('profiles').select('id,name,avatar_url,show_email,is_banned_definitively,banned_until').in('id', need);
   (data || []).forEach((p) => (prof[p.id] = p)); need.forEach((id) => { if (!prof[id]) prof[id] = { id }; });
 }
 const myName = () => user?.user_metadata?.name || 'Anonyme';
-const dbg = () => ($('#dbg').textContent = 'v7 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
+const dbg = () => ($('#dbg').textContent = 'v8 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
 
 // ---------- THÈME & SON ----------
 const root = document.documentElement;
@@ -266,10 +301,13 @@ let lt; const load = () => { clearTimeout(lt); lt = setTimeout(loadItems, 120); 
 function onUser() {
   if (chan) { sb.removeChannel(chan); chan = null; }
   if (!user) { show('#app', false); show('#auth', true); return; }
-  show('#auth', false); show('#app', true); loadGroups(); initPush();
+  show('#auth', false); show('#app', true); loadGroups(); initPush(); loadDms();
+  delete prof[user.id]; loadProfiles([user.id]).then(() => { applyBan(); setHead(); });
   chan = sb.channel('live')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'items' }, onInsert)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => refreshRoster())
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'private_messages' }, onDm)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'private_messages' }, () => loadDms())
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'items' }, load)
     .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'items' }, load)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'item_views' }, load)
@@ -287,8 +325,8 @@ function onInsert(p) {
 
 // ---------- GROUPES ----------
 const sheet = (o, id = '#sheet') => { $(id).classList.toggle('open', o); if (o) gerr(); };
-const isBannedRow = (r) => !!r && (r.is_banned || (r.banned_until && new Date(r.banned_until) > new Date()));
-const banned = () => !isSuper() && isBannedRow(groups.find((g) => g.id === gid));
+const isBannedRow = (r) => !!r && (r.is_banned_definitively || (r.banned_until && new Date(r.banned_until) > new Date()));
+const banned = () => !isSuper() && (isBannedRow(groups.find((g) => g.id === gid)) || isBannedRow(prof[user?.id]));
 const scrollEnd = () => setTimeout(() => scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 60);
 function setHead() {
   const g = groups.find((x) => x.id === gid), n = roster.filter((r) => !isBannedRow(r)).length;
@@ -298,16 +336,18 @@ function setHead() {
     : `${n} membre${n > 1 ? 's' : ''}${todoN ? ` · ${todoN} à acheter` : ''}${isAdmin() ? ' · 👑' : ''}`;
 }
 function applyBan() {
-  const b = banned(), g = groups.find((x) => x.id === gid);
-  show('#chat', !b); show('#composer', !b); show('#banned', b && !!g);
-  if (b && g) $('#banMsg').textContent = g.is_banned ? 'Un administrateur vous a retiré l’accès à ce groupe.'
-    : `Vous êtes banni de ce groupe jusqu’au ${new Date(g.banned_until).toLocaleString('fr-FR')}.`;
+  const b = banned(), g = groups.find((x) => x.id === gid), gb = !isSuper() && isBannedRow(prof[user?.id]);
+  show('#chat', !b); show('#composer', !b); show('#banned', b && (!!g || gb));
+  if (!b) return;
+  const r = gb ? prof[user.id] : g;
+  $('#banMsg').textContent = r.is_banned_definitively ? 'Un administrateur vous a retiré l’accès' + (gb ? ' à l’application.' : ' à ce groupe.')
+    : `Vous êtes banni${gb ? ' de l’application' : ' de ce groupe'} jusqu’au ${new Date(r.banned_until).toLocaleString('fr-FR')}.`;
 }
 async function refreshRoster() {
   if (!gid) { roster = []; alias = {}; return setHead(); }
-  const cols = 'user_id, role, custom_display_name, is_banned, banned_until';
+  const cols = 'user_id, role, custom_display_name, is_banned_definitively, banned_until';
   // Jointure explicite group_members -> profiles (nom + avatar de chaque membre)
-  let { data, error } = await sb.from('group_members').select(cols + ', profiles(id,name,avatar_url)').eq('group_id', gid);
+  let { data, error } = await sb.from('group_members').select(cols + ', profiles(id,name,avatar_url,show_email,is_banned_definitively,banned_until)').eq('group_id', gid);
   if (error) {
     console.warn('Jointure profiles indisponible :', error.message);
     ({ data, error } = await sb.from('group_members').select(cols).eq('group_id', gid));
@@ -317,7 +357,7 @@ async function refreshRoster() {
   rosterErr = ''; roster = data; alias = {};
   data.forEach((m) => { if (m.custom_display_name) alias[m.user_id] = m.custom_display_name; });
   const me = data.find((m) => m.user_id === user.id), g = groups.find((x) => x.id === gid);
-  if (me && g) Object.assign(g, { role: me.role, is_banned: me.is_banned, banned_until: me.banned_until });
+  if (me && g) Object.assign(g, { role: me.role, is_banned_definitively: me.is_banned_definitively, banned_until: me.banned_until });
   renderGroupList(); setHead(); applyBan(); render(); renderMembers();
   if (!banned() && !items.length) loadItems();
 }
@@ -326,9 +366,9 @@ function renderGroupList() {
 }
 function switchView() { first = true; items = []; roster = []; alias = {}; $('#items').innerHTML = ''; renderGroupList(); setHead(); applyBan(); refreshRoster(); loadItems(); }
 async function loadGroups(selectId) {
-  const { data, error } = await sb.from('group_members').select('role, is_banned, banned_until, groups(id,name)').eq('user_id', user.id);
+  const { data, error } = await sb.from('group_members').select('role, is_banned_definitively, banned_until, groups(id,name)').eq('user_id', user.id);
   if (error) fail('Lecture des groupes impossible : ' + error.message, error);
-  groups = (data || []).filter((r) => r.groups).map((r) => ({ ...r.groups, role: r.role, is_banned: r.is_banned, banned_until: r.banned_until }))
+  groups = (data || []).filter((r) => r.groups).map((r) => ({ ...r.groups, role: r.role, is_banned_definitively: r.is_banned_definitively, banned_until: r.banned_until }))
     .sort((a, b) => a.name.localeCompare(b.name));
   if (selectId) gid = selectId;
   if (!groups.find((g) => g.id === gid)) gid = groups[0]?.id || null;
@@ -402,7 +442,7 @@ function render() {
         : i.state === 'error' ? '<button class="retry">⚠ Réessayer</button>' : '<span class="tk ok" title="Enregistré">✓✓</span>';
       const seenTxt = seen.length ? `👁 Vu par ${esc(seen.join(', '))}` : mine && !i.state ? 'Pas encore vu' : '';
       li.innerHTML = `${av(i.author_id, i.author_name)}<div class="bub">
-        <div class="who">${esc(mine ? 'Vous' : who)}${i.urgent ? '<span class="badge">URGENT</span>' : ''}</div>
+        <div class="who" data-u="${i.author_id}">${esc(mine ? 'Vous' : who)}${i.urgent ? '<span class="badge">URGENT</span>' : ''}</div>
         <div class="t"><button class="ck" aria-label="Acheté"></button><span class="tx">${esc(i.text)}</span></div>
         <div class="ft">${seenTxt ? `<span class="seen">${seenTxt}</span>` : ''}${can && !i.state ? '<button class="act ed" aria-label="Modifier">✎</button>' : ''}${can ? '<button class="act del" aria-label="Supprimer">✕</button>' : ''}<span>${fmtT(i.created_at)}${i.edited_at ? ' · modifié' : ''}</span>${tick}</div></div>`;
     }
@@ -455,7 +495,7 @@ function renderMembers() {
   const adm = isAdmin();
   $('#mList').innerHTML = [...roster].sort((a, b) => (b.role === 'admin') - (a.role === 'admin') || nm(a.user_id).localeCompare(nm(b.user_id))).map((m) => {
     const b = isBannedRow(m), real = prof[m.user_id]?.name, self = m.user_id === user.id;
-    const until = b && !m.is_banned ? ' jusqu’au ' + new Date(m.banned_until).toLocaleString('fr-FR') : '';
+    const until = b && !m.is_banned_definitively ? ' jusqu’au ' + new Date(m.banned_until).toLocaleString('fr-FR') : '';
     const ctl = adm && !self ? `<div class="mc"><button class="ren">✏️ Renommer</button>${b ? '<button class="unban">✅ Débannir</button>' : '<button class="ban">🚫 Bannir</button>'}${m.role !== 'admin' ? '<button class="promo">👑 Promouvoir</button>' : ''}</div>` : '';
     return `<div class="mem" data-u="${m.user_id}">${av(m.user_id)}<div class="n">${esc(nm(m.user_id, 'Membre'))}${self ? ' (vous)' : ''}${m.custom_display_name && real ? `<small>Pseudo : ${esc(real)}</small>` : ''}${b ? `<small class="bn">🚫 Banni${until}</small>` : ''}</div>${m.role === 'admin' ? '<span class="role">👑 Admin</span>' : '<span class="role mb">Membre</span>'}${ctl}</div>`;
   }).join('');
@@ -483,7 +523,7 @@ $('#mGo').onclick = async () => {
 // ---------- PROFIL ----------
 $('#prof').onclick = () => {
   const p = prof[user.id] || {}, a = p.avatar_url || '', isUrl = /^https?:/.test(a);
-  $('#pName').value = p.name || myName(); $('#pUrl').value = isUrl ? a : ''; pAv = isUrl ? '' : a; $('#pErr').textContent = '';
+  $('#pEmail').checked = !!p.show_email; $('#pName').value = p.name || myName(); $('#pUrl').value = isUrl ? a : ''; pAv = isUrl ? '' : a; $('#pErr').textContent = '';
   picker($('#pPick'), () => pAv, (v) => (pAv = v)); sheet(true, '#psheet');
 };
 $('#pClose').onclick = () => sheet(false, '#psheet');
@@ -494,11 +534,120 @@ $('#pSave').onclick = async () => {
   if (url && !/^https:\/\//.test(url)) return (err.textContent = "L'URL doit commencer par https://");
   const avatar = url || pAv;
   const u = await sb.auth.updateUser({ data: { name, avatar } }); if (u.error) return (err.textContent = u.error.message);
-  const r = await sb.from('profiles').upsert({ id: user.id, name, avatar_url: avatar || null });
+  const r = await sb.from('profiles').upsert({ id: user.id, name, avatar_url: avatar || null, show_email: $('#pEmail').checked });
   if (r.error) return (err.textContent = r.error.message);
-  prof[user.id] = { id: user.id, name, avatar_url: avatar || null };
+  prof[user.id] = { ...(prof[user.id] || {}), id: user.id, name, avatar_url: avatar || null, show_email: $('#pEmail').checked };
   sheet(false, '#psheet'); toast('✅ Profil mis à jour'); render();
 };
+
+// ---------- CARTE DE PROFIL (clic sur un avatar ou un nom) + Super-Admin ----------
+let curUid = null;
+const stat = (perm, until) => perm ? '🚫 Banni à vie' : until && new Date(until) > new Date() ? '⏳ Banni jusqu’au ' + new Date(until).toLocaleString('fr-FR') : '✅ Actif';
+async function openProfile(uid) {
+  if (!gid) return;
+  const { data: p, error } = await sb.rpc('get_member_profile', { p_group: gid, p_user: uid });
+  if (error) return toast('⚠️ ' + error.message);
+  curUid = uid; prof[uid] = { ...(prof[uid] || {}), id: uid, name: p.name, avatar_url: p.avatar_url };
+  const shown = p.custom_display_name || p.name, adm = p.role === 'admin', sup = isSuper() && uid !== user.id;
+  $('#uBody').innerHTML = `<div style="text-align:center">${av(uid, p.name, 'xl')}
+    <h2 style="margin:10px 0 2px;font-size:1.3rem">${esc(shown)}</h2>
+    ${p.custom_display_name && p.custom_display_name !== p.name ? `<div class="mu">Pseudo : ${esc(p.name)}</div>` : ''}
+    <span class="role ${adm ? '' : 'mb'}" style="display:inline-block;margin-top:6px">${adm ? '👑 Admin' : 'Membre'}</span></div>
+    <div style="margin:12px 0">
+      <div class="info"><span>✉️ Email</span><b>${p.email ? esc(p.email) : 'Non partagé'}</b></div>
+      <div class="info"><span>📅 Dans le groupe depuis</span><b>${p.joined_at ? new Date(p.joined_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</b></div></div>
+    ${uid !== user.id ? '<button id="uDm" class="full">💬 Envoyer un message privé</button>' : ''}
+    ${sup ? `<div class="card" style="margin:14px 0 0"><h2>🛡️ Modération Super-Admin</h2>
+      <p class="mu">Application : ${stat(p.is_banned_definitively, p.banned_until)}<br>Ce groupe : ${stat(p.group_banned_definitively, p.group_banned_until)}</p>
+      <input id="sName" type="text" placeholder="Nom / pseudo d’affichage" value="${esc(p.name)}">
+      <input id="sAv" type="text" placeholder="Photo : emoji ou https://…" value="${esc(p.avatar_url || '')}">
+      <button id="sSave" class="full sec">Modifier les infos</button>
+      <input id="sHrs" class="sbtn" type="text" inputmode="decimal" placeholder="Ban temporaire : durée en heures (ex : 24)">
+      <input id="sDate" type="datetime-local" title="…ou date de fin">
+      <label class="chk"><input id="sLife" type="checkbox"> Bannir à vie</label>
+      <button id="sBan" class="full red sbtn">🚫 Appliquer le ban</button>
+      <button id="sUnban" class="full sec sbtn">✅ Débannir</button>
+      <button id="sKick" class="full sec sbtn">🚪 Exclure du groupe</button></div>` : ''}`;
+  sheet(true, '#umodal');
+}
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-u]');
+  if (!t || e.target.closest('button,input,#umodal')) return;
+  openProfile(t.dataset.u);
+});
+$('#uBody').onclick = async (e) => {
+  const b = e.target.closest('button'); if (!b) return; const uid = curUid;
+  const done = async (r, msg) => { if (r.error) return toast('⚠️ ' + r.error.message); toast(msg); delete prof[uid]; await refreshRoster(); openProfile(uid); };
+  if (b.id === 'uDm') { sheet(false, '#umodal'); openChat(uid); }
+  else if (b.id === 'sSave') done(await sb.rpc('admin_update_profile', { p_user: uid, p_name: $('#sName').value, p_avatar: $('#sAv').value }), '✅ Infos modifiées');
+  else if (b.id === 'sBan') {
+    const life = $('#sLife').checked, hrs = parseFloat(($('#sHrs').value || '').replace(',', '.')), dv = $('#sDate').value; let until = null;
+    if (!life) { if (dv) until = new Date(dv).toISOString(); else if (hrs > 0) until = new Date(Date.now() + hrs * 3600e3).toISOString(); else return toast('Indiquez une durée, une date de fin ou « Bannir à vie »'); }
+    done(await sb.rpc('super_set_ban', { p_user: uid, p_until: until, p_permanent: life }), life ? '🚫 Banni à vie' : '⏳ Ban appliqué');
+  } else if (b.id === 'sUnban') done(await sb.rpc('super_unban', { p_user: uid }), '✅ Membre débanni');
+  else if (b.id === 'sKick') {
+    if (!confirm('Exclure ce membre du groupe ?')) return;
+    const r = await sb.rpc('super_kick', { p_group: gid, p_user: uid });
+    if (r.error) return toast('⚠️ ' + r.error.message);
+    toast('🚪 Membre exclu'); sheet(false, '#umodal'); refreshRoster();
+  }
+};
+
+// ---------- MESSAGES PRIVÉS (temps réel) ----------
+let dms = [], dmWith = null;
+const globalBan = () => !isSuper() && isBannedRow(prof[user?.id]);
+const dmOthers = () => {
+  const m = new Map();
+  for (const x of dms) { const o = x.sender_id === user.id ? x.recipient_id : x.sender_id;
+    if (!m.has(o)) m.set(o, { id: o, last: x, unread: 0 }); if (x.recipient_id === user.id && !x.read_at) m.get(o).unread++; }
+  return [...m.values()];
+};
+async function loadDms() {
+  const { data, error } = await sb.from('private_messages').select('*').or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order('created_at', { ascending: false }).limit(500);
+  if (error) return console.warn('MP :', error.message);
+  dms = data || []; await loadProfiles(dmOthers().map((x) => x.id)); renderDmList(); renderChat();
+}
+function renderDmList() {
+  const c = dmOthers(), unread = c.reduce((n, x) => n + x.unread, 0);
+  $('#dList').innerHTML = c.map((x) => `<button class="grp conv" data-id="${x.id}">${av(x.id)}<span class="n"><b>${esc(nm(x.id, 'Membre'))}</b><small class="mu" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.last.sender_id === user.id ? 'Vous : ' : ''}${esc(x.last.body)}</small></span>${x.unread ? `<span class="nb">${x.unread}</span>` : ''}</button>`).join('');
+  show('#dEmpty', !c.length); $('#dmBadge').textContent = unread; show('#dmBadge', unread > 0);
+}
+function renderChat() {
+  if (!dmWith) return;
+  const list = dms.filter((x) => x.sender_id === dmWith || x.recipient_id === dmWith).slice().reverse();
+  $('#dMsgs').innerHTML = list.map((x) => { const me = x.sender_id === user.id;
+    return `<div class="dm ${me ? 'me' : ''}">${esc(x.body)}<small>${fmtT(x.created_at)}${me ? (x.read_at ? ' <span class="tk ok">✓✓</span>' : ' <span class="tk">✓</span>') : ''}</small></div>`; }).join('')
+    || '<p class="mu" style="text-align:center">Écrivez le premier message 👋</p>';
+  $('#dMsgs').scrollTop = $('#dMsgs').scrollHeight;
+  if ($('#dsheet').classList.contains('open') && dms.some((x) => x.sender_id === dmWith && x.recipient_id === user.id && !x.read_at)) {
+    dms.forEach((x) => { if (x.sender_id === dmWith && x.recipient_id === user.id) x.read_at = x.read_at || new Date().toISOString(); });
+    sb.rpc('mark_dm_read', { p_other: dmWith }); renderDmList();
+  }
+}
+async function openChat(uid) {
+  dmWith = uid; await loadProfiles([uid]);
+  $('#dName').textContent = nm(uid, 'Membre'); $('#dAv').innerHTML = av(uid);
+  show('#dListV', false); show('#dChatV', true); sheet(true, '#dsheet'); renderChat();
+}
+$('#dm').onclick = () => { dmWith = null; show('#dChatV', false); show('#dListV', true); renderDmList(); sheet(true, '#dsheet'); };
+$('#dBack').onclick = () => { dmWith = null; show('#dChatV', false); show('#dListV', true); renderDmList(); };
+$('#dList').onclick = (e) => { const b = e.target.closest('.conv'); if (b) openChat(b.dataset.id); };
+$('#dForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); const t = $('#dText').value.trim(); if (!t || !dmWith) return;
+  if (globalBan()) return fail('Votre compte est bloqué : envoi impossible.');
+  $('#dText').value = '';
+  const { error } = await sb.from('private_messages').insert({ sender_id: user.id, recipient_id: dmWith, body: t });
+  if (error) { $('#dText').value = t; return fail('Envoi impossible : ' + error.message, error); }
+  loadDms();
+});
+async function onDm(p) {
+  const n = p.new;
+  if (n.recipient_id === user.id) {
+    await loadProfiles([n.sender_id]); buzz(false);
+    if (!($('#dsheet').classList.contains('open') && dmWith === n.sender_id)) toast(`💬 ${nm(n.sender_id, 'Membre')} : ${n.body}`);
+  }
+  loadDms();
+}
 
 // "Vu par" : on enregistre les articles affichés à l'écran
 async function markSeen() {
@@ -510,7 +659,7 @@ async function markSeen() {
   const { error } = await sb.from('item_views').upsert(rows, { onConflict: 'item_id,user_id', ignoreDuplicates: true });
   if (error) console.error('Vu par :', error);
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { load(); refreshRoster(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { load(); refreshRoster(); delete prof[user.id]; loadProfiles([user.id]).then(applyBan); } });
 
 // ---------- AJOUT (envoi optimiste : ✓ gris -> ✓✓ vert) ----------
 async function send(p) {
