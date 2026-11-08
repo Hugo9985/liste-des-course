@@ -65,6 +65,13 @@ li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{conte
 .open .panel{transform:none}.grab{width:40px;height:5px;border-radius:9px;background:var(--bd);margin:0 auto 12px}
 .err{color:var(--rd);font-size:.88rem;min-height:1.1em;margin:4px 0}.mu{color:var(--mu);font-size:.88rem}
 #install{background:var(--pr);color:#fff;text-align:center;margin-top:8px}
+.av{position:relative;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#34c759,#0a84ff);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex:none;overflow:hidden}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}.pick button{width:42px;height:42px;padding:0;font-size:1.4rem;background:var(--bg);box-shadow:none;border-radius:50%}.pick button.on{outline:3px solid var(--pr)}
+.ei{width:100%;margin:0!important;padding:6px 10px!important;border-radius:10px!important;background:var(--bg)}
+.act{background:none;box-shadow:none;color:var(--mu);padding:2px 6px;font-size:.95rem}
+.mem{display:flex;align-items:center;gap:10px;padding:7px 0}.mem .n{flex:1}.role{font-size:.68rem;font-weight:800;background:var(--pr);color:#fff;border-radius:99px;padding:3px 9px}
+.chk{display:flex;gap:8px;align-items:center;color:var(--mu);margin-bottom:10px}.chk input{width:20px;height:20px}
 #toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translate(-50%,-90px);z-index:50;background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:.88rem;max-width:90%;transition:transform .4s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 8px 24px rgba(0,0,0,.25)}
 #toast.on{transform:translate(-50%,0)}
 </style>
@@ -77,6 +84,7 @@ li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{conte
   <div class="card">
     <div class="seg"><button id="tabIn" class="on">Connexion</button><button id="tabUp">Inscription</button></div>
     <input id="aName" type="text" placeholder="Nom / Pseudo" class="hidden" autocomplete="nickname">
+    <div id="aPick" class="pick hidden"></div>
     <input id="aEmail" type="email" placeholder="Email" autocomplete="email">
     <input id="aPass" type="password" placeholder="Mot de passe (6 car. min.)" autocomplete="current-password">
     <button id="aGo" class="full">Se connecter</button>
@@ -91,9 +99,7 @@ li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{conte
       <select id="gSel"></select>
       <button id="gMenu" class="sec ib" title="Groupes">👥</button>
       <button id="bell" class="sec ib hidden" title="Activer les notifications">🔔</button>
-      <button id="snd" class="sec ib" title="Son">🔊</button>
-      <button id="theme" class="sec ib" title="Thème">🌗</button>
-      <button id="out" class="sec ib" title="Déconnexion">⏻</button>
+      <button id="prof" class="sec ib" title="Profil">👤</button>
     </div>
     <p id="count"></p>
   </div>
@@ -117,6 +123,12 @@ li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{conte
 
 <div id="sheet" class="sheet"><div class="panel">
   <div class="grab"></div>
+  <div id="manage" class="card hidden"><h2>👑 Gérer le groupe</h2>
+    <input id="mName" type="text" placeholder="Nom du groupe">
+    <input id="mPass" type="password" placeholder="Nouveau mot de passe (vide = inchangé)">
+    <label class="chk"><input id="mRm" type="checkbox"> Retirer le mot de passe</label>
+    <button id="mGo" class="full">Enregistrer</button></div>
+  <div id="members" class="card hidden"><h2>Membres</h2><div id="mList"></div></div>
   <div class="card"><h2>Créer un groupe</h2>
     <input id="cName" type="text" placeholder="Nom du groupe">
     <input id="cPass" type="password" placeholder="Mot de passe (optionnel)">
@@ -127,6 +139,19 @@ li.done .ck{background:var(--pr);border-color:var(--pr)}li.done .ck::after{conte
     <button id="jGo" class="full">Rejoindre</button></div>
   <p id="gErr" class="err"></p>
   <button id="sClose" class="sec full">Fermer</button>
+</div></div>
+
+<div id="psheet" class="sheet"><div class="panel">
+  <div class="grab"></div>
+  <div class="card"><h2>Mon profil</h2>
+    <input id="pName" type="text" placeholder="Pseudo">
+    <div id="pPick" class="pick"></div>
+    <input id="pUrl" type="text" placeholder="…ou URL d'une photo (https://…)">
+    <button id="pSave" class="full">Enregistrer</button><p id="pErr" class="err"></p></div>
+  <button id="snd" class="sec full" style="margin-bottom:8px"></button>
+  <button id="theme" class="sec full" style="margin-bottom:8px">🌗 Changer de thème</button>
+  <button id="out" class="sec full" style="margin-bottom:8px">⏻ Se déconnecter</button>
+  <button id="pClose" class="sec full">Fermer</button>
 </div></div>
 
 <script src="/config.js"></script>
@@ -147,9 +172,27 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then((r) => r.update());
 }
 
-let user, groups = [], items = [], pend = [], gid = localStorage.getItem('gid'), chan, mode = 'in', first = true, muted = localStorage.getItem('mute') === '1';
+let user, groups = [], items = [], pend = [], prof = {}, editing = null, signAv = '', pAv = '', gid = localStorage.getItem('gid'), chan, mode = 'in', first = true, muted = localStorage.getItem('mute') === '1';
+const SUPER = 'charton.hugo1001@gmail.com';   // l'autorité réelle est la base de données (RLS)
+const isSuper = () => user?.email?.toLowerCase() === SUPER;
+const isAdmin = () => isSuper() || groups.find((g) => g.id === gid)?.role === 'admin';
+const nm = (id, fb) => prof[id]?.name || fb || '?';
+function av(id, fb) {
+  const a = prof[id]?.avatar_url || '', url = /^https?:\/\//.test(a);
+  return `<span class="av">${url || !a ? esc(nm(id, fb).charAt(0).toUpperCase()) : esc(a)}${url ? `<img src="${esc(a)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
+}
+const EMO = ['🐱','🐶','🦊','🐼','🐸','🦁','🐵','🦄','🍎','🥑','🌻','⚡'];
+function picker(box, get, set) {
+  box.innerHTML = EMO.map((e) => `<button type="button" data-e="${e}" class="${get() === e ? 'on' : ''}">${e}</button>`).join('');
+  box.onclick = (ev) => { const b = ev.target.closest('button'); if (!b) return; set(get() === b.dataset.e ? '' : b.dataset.e); picker(box, get, set); };
+}
+async function loadProfiles(ids) {
+  const need = [...new Set(ids)].filter((id) => id && !prof[id]); if (!need.length) return;
+  const { data } = await sb.from('profiles').select('id,name,avatar_url').in('id', need);
+  (data || []).forEach((p) => (prof[p.id] = p)); need.forEach((id) => { if (!prof[id]) prof[id] = { id }; });
+}
 const myName = () => user?.user_metadata?.name || 'Anonyme';
-const dbg = () => ($('#dbg').textContent = 'v4 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
+const dbg = () => ($('#dbg').textContent = 'v5 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
 
 // ---------- THÈME & SON ----------
 const root = document.documentElement;
@@ -158,8 +201,8 @@ $('#theme').onclick = () => {
   const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme:dark)').matches;
   root.dataset.theme = dark ? 'light' : 'dark'; localStorage.setItem('theme', root.dataset.theme);
 };
-$('#snd').textContent = muted ? '🔇' : '🔊';
-$('#snd').onclick = () => { muted = !muted; localStorage.setItem('mute', muted ? '1' : '0'); $('#snd').textContent = muted ? '🔇' : '🔊'; };
+$('#snd').textContent = muted ? '🔇 Son coupé' : '🔊 Son activé';
+$('#snd').onclick = () => { muted = !muted; localStorage.setItem('mute', muted ? '1' : '0'); $('#snd').textContent = muted ? '🔇 Son coupé' : '🔊 Son activé'; };
 let ac; addEventListener('pointerdown', () => { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume?.(); }, { once: true });
 function buzz(urgent) {
   navigator.vibrate?.(urgent ? [200, 80, 200, 80, 200] : [70, 40, 70]); // Android ; iOS ne supporte pas vibrate
@@ -175,7 +218,7 @@ function buzz(urgent) {
 // ---------- AUTH ----------
 function setMode(m) {
   mode = m; $('#tabIn').classList.toggle('on', m === 'in'); $('#tabUp').classList.toggle('on', m === 'up');
-  show('#aName', m === 'up'); $('#aGo').textContent = m === 'in' ? 'Se connecter' : 'Créer mon compte'; $('#aErr').textContent = '';
+  show('#aName', m === 'up'); show('#aPick', m === 'up'); $('#aGo').textContent = m === 'in' ? 'Se connecter' : 'Créer mon compte'; $('#aErr').textContent = '';
 }
 $('#tabIn').onclick = () => setMode('in'); $('#tabUp').onclick = () => setMode('up');
 $('#aGo').onclick = async () => {
@@ -183,7 +226,7 @@ $('#aGo').onclick = async () => {
   err.textContent = '';
   if (mode === 'up') {
     if (!name) return (err.textContent = 'Entrez un pseudo.');
-    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name, avatar: signAv } } });
     if (error) return (err.textContent = error.message);
     if (!data.session) err.textContent = '✉️ Compte créé : confirmez votre email puis connectez-vous.';
   } else {
@@ -202,6 +245,7 @@ sb.auth.onAuthStateChange((_ev, session) => {
   user = u; setTimeout(onUser, 0);
 });
 user = undefined;
+picker($('#aPick'), () => signAv, (v) => (signAv = v));
 
 let lt; const load = () => { clearTimeout(lt); lt = setTimeout(loadItems, 120); };
 function onUser() {
@@ -226,11 +270,11 @@ function onInsert(p) {
 }
 
 // ---------- GROUPES ----------
-const sheet = (o) => { $('#sheet').classList.toggle('open', o); if (o) gerr(); };
+const sheet = (o, id = '#sheet') => { $(id).classList.toggle('open', o); if (o) gerr(); };
 async function loadGroups(selectId) {
-  const { data, error } = await sb.from('group_members').select('groups(id,name)').eq('user_id', user.id);
+  const { data, error } = await sb.from('group_members').select('role, groups(id,name)').eq('user_id', user.id);
   if (error) fail('Lecture des groupes impossible : ' + error.message, error);
-  groups = (data || []).map((r) => r.groups).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+  groups = (data || []).map((r) => r.groups && { ...r.groups, role: r.role }).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
   if (selectId) gid = selectId;
   if (!groups.find((g) => g.id === gid)) gid = groups[0]?.id || null;
   $('#gSel').innerHTML = groups.map((g) => `<option value="${g.id}" ${g.id === gid ? 'selected' : ''}>${esc(g.name)}</option>`).join('');
@@ -239,7 +283,7 @@ async function loadGroups(selectId) {
   first = true; $('#items').innerHTML = ''; loadItems();
 }
 $('#gSel').onchange = (e) => { gid = e.target.value; items = []; first = true; $('#items').innerHTML = ''; loadItems(); };
-$('#gMenu').onclick = () => sheet(true); $('#sClose').onclick = () => sheet(false);
+$('#gMenu').onclick = () => { sheet(true); loadMembers(); }; $('#sClose').onclick = () => sheet(false);
 $('#sheet').onclick = (e) => { if (e.target.id === 'sheet') sheet(false); };
 $('#cGo').onclick = async () => {
   const { data, error } = await sb.rpc('create_group', { p_name: $('#cName').value, p_password: $('#cPass').value });
@@ -269,6 +313,7 @@ async function loadItems() {
   }
   if (error) return fail('Lecture des articles impossible : ' + error.message, error);
   appErr(); items = data || [];
+  await loadProfiles([user.id, ...items.map((i) => i.author_id), ...items.flatMap((i) => (i.item_views || []).map((v) => v.user_id))]);
   pend = pend.filter((p) => !items.some((i) => i.id === p.id));
   render(); first = false; markSeen();
 }
@@ -280,28 +325,50 @@ function render() {
   [...ul.children].forEach((li) => { if (!keep.has(li.dataset.id) && !li.classList.contains('out')) { li.classList.add('out'); setTimeout(() => li.remove(), 260); } });
   let prev = null;
   all.forEach((i) => {
-    const mine = i.author_id === user.id;
-    const seen = (i.item_views || []).filter((v) => v.user_id !== user.id).map((v) => v.user_name);
-    const sig = JSON.stringify([i.text, i.urgent, i.done, i.state || '', seen]);
+    const mine = i.author_id === user.id, can = mine || isAdmin(), pa = prof[i.author_id] || {};
+    const seen = (i.item_views || []).filter((v) => v.user_id !== user.id).map((v) => nm(v.user_id, v.user_name));
+    const sig = JSON.stringify([i.text, i.urgent, i.done, i.state || '', seen, can, i.edited_at || '', pa.avatar_url || '', pa.name || '']);
     let li = ul.querySelector(`[data-id="${i.id}"]:not(.out)`);
     if (!li) { li = document.createElement('li'); li.dataset.id = i.id; if (!first) li.classList.add('in'); }
-    if (li.dataset.sig !== sig) {
+    if (li.dataset.sig !== sig && editing !== i.id) {
       li.dataset.sig = sig; li.classList.toggle('urgent', !!i.urgent && !i.done); li.classList.toggle('done', !!i.done);
       const tick = !mine ? '' : i.state === 'sending' ? '<span class="tk" title="Envoi…">✓</span>'
         : i.state === 'error' ? '<button class="retry">⚠ Réessayer</button>' : '<span class="tk ok" title="Enregistré">✓✓</span>';
       const seenTxt = seen.length ? `👁 Vu par ${esc(seen.join(', '))}` : mine && !i.state ? 'Pas encore vu' : '';
-      li.innerHTML = `<button class="ck" aria-label="Acheté"></button>
+      li.innerHTML = `<button class="ck" aria-label="Acheté"></button>${av(i.author_id, i.author_name)}
         <div class="bd"><div class="t">${i.urgent ? '<span class="badge">URGENT</span>' : ''}${esc(i.text)}</div>
-        <div class="meta">${esc(mine ? 'Vous' : i.author_name)} · Ajouté ${fmt(i.created_at)}</div>
+        <div class="meta">${esc(mine ? 'Vous' : nm(i.author_id, i.author_name))} · Ajouté ${fmt(i.created_at)}${i.edited_at ? ' · modifié' : ''}</div>
         ${seenTxt ? `<div class="seen">${seenTxt}</div>` : ''}</div>
-        <div class="side">${tick}<button class="del" aria-label="Supprimer">✕</button></div>`;
+        <div class="side">${tick}<span>${can && !i.state ? '<button class="act ed" aria-label="Modifier">✎</button>' : ''}${can ? '<button class="del" aria-label="Supprimer">✕</button>' : ''}</span></div>`;
     }
     ul.insertBefore(li, prev ? prev.nextSibling : ul.firstChild); prev = li;
   });
   const todo = all.filter((i) => !i.done).length, done = all.length - todo;
-  if (gid) $('#count').textContent = `${todo} à acheter${done ? ` · ${done} acheté${done > 1 ? 's' : ''}` : ''}`;
+  if (gid) $('#count').textContent = `${todo} à acheter${done ? ` · ${done} acheté${done > 1 ? 's' : ''}` : ''}${isAdmin() ? ' · 👑 admin' : ''}`;
   show('#empty', !all.length); dbg();
 }
+
+// Modification rapide (bouton ✎ ou double-clic) : Entrée = enregistrer, Échap = annuler
+function startEdit(li) {
+  const id = li.dataset.id, it = items.find((x) => x.id === id); if (!it) return;
+  editing = id; const t = li.querySelector('.t');
+  t.innerHTML = `<input class="ei" maxlength="120" value="${esc(it.text)}">`;
+  const inp = t.firstChild; inp.focus(); inp.select();
+  inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); saveEdit(id, inp.value); } else if (e.key === 'Escape') { editing = null; li.dataset.sig = ''; render(); } };
+  inp.onblur = () => { if (editing === id) saveEdit(id, inp.value); };
+}
+async function saveEdit(id, val) {
+  const li = $(`#items [data-id="${id}"]`), text = val.trim(), it = items.find((x) => x.id === id);
+  editing = null; if (li) li.dataset.sig = '';
+  if (!it || !text || text === it.text) return render();
+  it.text = text; it.edited_at = new Date().toISOString(); render();
+  const { error } = await sb.from('items').update({ text }).eq('id', id);
+  if (error) fail('Modification impossible : ' + error.message, error); load();
+}
+$('#items').ondblclick = (e) => {
+  const li = e.target.closest('li'); if (!li || e.target.closest('input,button')) return;
+  const it = items.find((x) => x.id === li.dataset.id); if (it && (it.author_id === user.id || isAdmin())) startEdit(li);
+};
 $('#items').onclick = async (e) => {
   const li = e.target.closest('li'); if (!li) return; const id = li.dataset.id;
   if (e.target.closest('.ck')) {
@@ -309,11 +376,54 @@ $('#items').onclick = async (e) => {
     it.done = !it.done; render();
     const { error } = await sb.from('items').update({ done: it.done }).eq('id', id);
     if (error) fail('Modification impossible : ' + error.message, error); load();
-  } else if (e.target.closest('.del')) {
+  } else if (e.target.closest('.ed')) startEdit(li);
+  else if (e.target.closest('.del')) {
     pend = pend.filter((p) => p.id !== id); items = items.filter((x) => x.id !== id); render();
     const { error } = await sb.from('items').delete().eq('id', id);
     if (error) fail('Suppression impossible : ' + error.message, error); load();
   } else if (e.target.closest('.retry')) { const p = pend.find((x) => x.id === id); if (p) send(p); }
+};
+
+// ---------- MEMBRES & ADMIN DU GROUPE ----------
+async function loadMembers() {
+  show('#manage', false); show('#members', false); if (!gid) return;
+  const { data, error } = await sb.from('group_members').select('user_id,role').eq('group_id', gid);
+  if (error) return gerr(error.message);
+  await loadProfiles(data.map((m) => m.user_id));
+  $('#mList').innerHTML = data.sort((a, b) => (b.role === 'admin') - (a.role === 'admin')).map((m) =>
+    `<div class="mem" data-u="${m.user_id}">${av(m.user_id)}<div class="n">${esc(nm(m.user_id))}${m.user_id === user.id ? ' (vous)' : ''}</div>` +
+    (m.role === 'admin' ? '<span class="role">👑 ADMIN</span>' : isAdmin() ? '<button class="sec promo" style="padding:7px 11px;font-size:.8rem">Promouvoir admin</button>' : '') + '</div>').join('');
+  show('#members', true);
+  if (isAdmin()) { $('#mName').value = groups.find((g) => g.id === gid)?.name || ''; $('#mPass').value = ''; $('#mRm').checked = false; show('#manage', true); }
+}
+$('#mList').onclick = async (e) => {
+  const b = e.target.closest('.promo'); if (!b) return;
+  const { error } = await sb.rpc('set_member_role', { p_group: gid, p_user: b.closest('.mem').dataset.u, p_role: 'admin' });
+  if (error) return gerr(error.message); toast('👑 Nouvel administrateur'); loadMembers();
+};
+$('#mGo').onclick = async () => {
+  const { error } = await sb.rpc('update_group', { p_group: gid, p_name: $('#mName').value, p_password: $('#mPass').value || null, p_remove_password: $('#mRm').checked });
+  if (error) return gerr(error.message); toast('✅ Groupe mis à jour'); loadGroups(gid);
+};
+
+// ---------- PROFIL ----------
+$('#prof').onclick = () => {
+  const p = prof[user.id] || {}, a = p.avatar_url || '', isUrl = /^https?:/.test(a);
+  $('#pName').value = p.name || myName(); $('#pUrl').value = isUrl ? a : ''; pAv = isUrl ? '' : a; $('#pErr').textContent = '';
+  picker($('#pPick'), () => pAv, (v) => (pAv = v)); sheet(true, '#psheet');
+};
+$('#pClose').onclick = () => sheet(false, '#psheet');
+$('#psheet').onclick = (e) => { if (e.target.id === 'psheet') sheet(false, '#psheet'); };
+$('#pSave').onclick = async () => {
+  const name = $('#pName').value.trim(), url = $('#pUrl').value.trim(), err = $('#pErr'); err.textContent = '';
+  if (!name) return (err.textContent = 'Entrez un pseudo.');
+  if (url && !/^https:\/\//.test(url)) return (err.textContent = "L'URL doit commencer par https://");
+  const avatar = url || pAv;
+  const u = await sb.auth.updateUser({ data: { name, avatar } }); if (u.error) return (err.textContent = u.error.message);
+  const r = await sb.from('profiles').upsert({ id: user.id, name, avatar_url: avatar || null });
+  if (r.error) return (err.textContent = r.error.message);
+  prof[user.id] = { id: user.id, name, avatar_url: avatar || null };
+  sheet(false, '#psheet'); toast('✅ Profil mis à jour'); render();
 };
 
 // "Vu par" : on enregistre les articles affichés à l'écran
