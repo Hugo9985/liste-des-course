@@ -47,3 +47,6 @@ La clé `sb_publishable_…` est faite pour être publique. Les données sont pr
 1. SQL Editor -> coller **tout** `supabase/update_v8.sql` -> Run (inclut toutes les versions précédentes, aucune donnée supprimée).
 2. Créez le compte `charton.hugo1001@gmail.com` (Super-Admin) puis activez *Confirm email*.
 3. `supabase functions deploy notify-urgent --no-verify-jwt`, redéployez le dossier, réinstallez l'app.
+
+## Correctif profils (v9)
+SQL Editor -> coller `supabase/fix_profiles.sql` -> Run (après update_v8.sql). Redéployer le dossier et réinstaller l'app.
