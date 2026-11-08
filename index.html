@@ -226,7 +226,7 @@ let user, groups = [], items = [], pend = [], prof = {}, roster = [], alias = {}
 const SUPER = 'charton.hugo1001@gmail.com';   // l'autorité réelle est la base de données (RLS)
 const isSuper = () => user?.email?.toLowerCase() === SUPER;
 const isAdmin = () => isSuper() || groups.find((g) => g.id === gid)?.role === 'admin';
-const nm = (id, fb) => alias[id] || prof[id]?.name || fb || '?';
+const nm = (id, fb) => alias[id] || prof[id]?.name || (id === user?.id ? (user.email || '').split('@')[0] : '') || fb || 'Utilisateur';
 function av(id, fb, cls = '') {
   const a = prof[id]?.avatar_url || '', url = /^https?:\/\//.test(a);
   return `<span class="av ${cls}" data-u="${id}">${url || !a ? esc(nm(id, fb).charAt(0).toUpperCase()) : esc(a)}${url ? `<img src="${esc(a)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</span>`;
@@ -236,13 +236,17 @@ function picker(box, get, set) {
   box.innerHTML = EMO.map((e) => `<button type="button" data-e="${e}" class="${get() === e ? 'on' : ''}">${e}</button>`).join('');
   box.onclick = (ev) => { const b = ev.target.closest('button'); if (!b) return; set(get() === b.dataset.e ? '' : b.dataset.e); picker(box, get, set); };
 }
+const missAt = {};
 async function loadProfiles(ids) {
-  const need = [...new Set(ids)].filter((id) => id && !prof[id]); if (!need.length) return;
-  const { data } = await sb.from('profiles').select('id,name,avatar_url,show_email,is_banned_definitively,banned_until').in('id', need);
-  (data || []).forEach((p) => (prof[p.id] = p)); need.forEach((id) => { if (!prof[id]) prof[id] = { id }; });
+  const now = Date.now(), need = [...new Set(ids)].filter((id) => id && !prof[id]?.name && now - (missAt[id] || 0) > 20000);
+  if (!need.length) return;
+  need.forEach((id) => (missAt[id] = now));
+  const { data, error } = await sb.from('profiles').select('id,name,avatar_url,show_email,is_banned_definitively,banned_until').in('id', need);
+  if (error) return console.warn('Profils illisibles :', error.message);
+  (data || []).forEach((p) => { prof[p.id] = p; delete missAt[p.id]; });
 }
 const myName = () => user?.user_metadata?.name || 'Anonyme';
-const dbg = () => ($('#dbg').textContent = 'v8 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
+const dbg = () => ($('#dbg').textContent = 'v9 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun'));
 
 // ---------- THÈME & SON ----------
 const root = document.documentElement;
@@ -279,6 +283,7 @@ $('#aGo').onclick = async () => {
     const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name, avatar: signAv } } });
     if (error) return (err.textContent = error.message);
     if (!data.session) err.textContent = '✉️ Compte créé : confirmez votre email puis connectez-vous.';
+    else await sb.from('profiles').upsert({ id: data.user.id, name, ...(signAv ? { avatar_url: signAv } : {}) });
   } else {
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if (error) err.textContent = error.message.includes('Invalid') ? 'Email ou mot de passe incorrect.' : error.message;
@@ -298,11 +303,21 @@ user = undefined;
 picker($('#aPick'), () => signAv, (v) => (signAv = v));
 
 let lt; const load = () => { clearTimeout(lt); lt = setTimeout(loadItems, 120); };
+async function ensureProfile() {
+  const meta = user.user_metadata || {}, name = meta.name || (user.email || '').split('@')[0] || 'Utilisateur';
+  const { error } = await sb.rpc('ensure_my_profile', { p_name: name, p_avatar: meta.avatar || null });
+  if (error) {   // secours si la fonction SQL n'est pas encore installée
+    console.warn('ensure_my_profile indisponible :', error.message);
+    const { data } = await sb.from('profiles').select('id,name').eq('id', user.id).maybeSingle();
+    if (!data) await sb.from('profiles').insert({ id: user.id, name, avatar_url: meta.avatar || null });
+    else if (!data.name) await sb.from('profiles').update({ name }).eq('id', user.id);
+  }
+}
 function onUser() {
   if (chan) { sb.removeChannel(chan); chan = null; }
   if (!user) { show('#app', false); show('#auth', true); return; }
   show('#auth', false); show('#app', true); loadGroups(); initPush(); loadDms();
-  delete prof[user.id]; loadProfiles([user.id]).then(() => { applyBan(); setHead(); });
+  ensureProfile().then(() => { delete prof[user.id]; return loadProfiles([user.id]); }).then(() => { applyBan(); setHead(); render(); refreshRoster(); });
   chan = sb.channel('live')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'items' }, onInsert)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => refreshRoster())
@@ -347,12 +362,15 @@ async function refreshRoster() {
   if (!gid) { roster = []; alias = {}; return setHead(); }
   const cols = 'user_id, role, custom_display_name, is_banned_definitively, banned_until';
   // Jointure explicite group_members -> profiles (nom + avatar de chaque membre)
-  let { data, error } = await sb.from('group_members').select(cols + ', profiles(id,name,avatar_url,show_email,is_banned_definitively,banned_until)').eq('group_id', gid);
+  let { data, error } = await sb.from('group_members').select(cols + ', profiles!group_members_user_id_profiles_fkey(id,name,avatar_url,show_email,is_banned_definitively,banned_until)').eq('group_id', gid);
   if (error) {
     console.warn('Jointure profiles indisponible :', error.message);
     ({ data, error } = await sb.from('group_members').select(cols).eq('group_id', gid));
     if (!error) await loadProfiles(data.map((m) => m.user_id));
-  } else data.forEach((m) => { prof[m.user_id] = m.profiles || prof[m.user_id] || { id: m.user_id }; });
+  } else {   // profiles = LEFT JOIN : null si le profil n'existe pas encore -> relu séparément
+    data.forEach((m) => { const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles; if (p?.name) prof[m.user_id] = p; });
+    await loadProfiles(data.map((m) => m.user_id));
+  }
   if (error) { rosterErr = error.message; console.error(error); setHead(); return renderMembers(); }
   rosterErr = ''; roster = data; alias = {};
   data.forEach((m) => { if (m.custom_display_name) alias[m.user_id] = m.custom_display_name; });
@@ -497,7 +515,7 @@ function renderMembers() {
     const b = isBannedRow(m), real = prof[m.user_id]?.name, self = m.user_id === user.id;
     const until = b && !m.is_banned_definitively ? ' jusqu’au ' + new Date(m.banned_until).toLocaleString('fr-FR') : '';
     const ctl = adm && !self ? `<div class="mc"><button class="ren">✏️ Renommer</button>${b ? '<button class="unban">✅ Débannir</button>' : '<button class="ban">🚫 Bannir</button>'}${m.role !== 'admin' ? '<button class="promo">👑 Promouvoir</button>' : ''}</div>` : '';
-    return `<div class="mem" data-u="${m.user_id}">${av(m.user_id)}<div class="n">${esc(nm(m.user_id, 'Membre'))}${self ? ' (vous)' : ''}${m.custom_display_name && real ? `<small>Pseudo : ${esc(real)}</small>` : ''}${b ? `<small class="bn">🚫 Banni${until}</small>` : ''}</div>${m.role === 'admin' ? '<span class="role">👑 Admin</span>' : '<span class="role mb">Membre</span>'}${ctl}</div>`;
+    return `<div class="mem" data-u="${m.user_id}">${av(m.user_id)}<div class="n">${esc(nm(m.user_id))}${self ? ' (vous)' : ''}${m.custom_display_name && real ? `<small>Pseudo : ${esc(real)}</small>` : ''}${b ? `<small class="bn">🚫 Banni${until}</small>` : ''}</div>${m.role === 'admin' ? '<span class="role">👑 Admin</span>' : '<span class="role mb">Membre</span>'}${ctl}</div>`;
   }).join('');
 }
 $('#mList').onclick = async (e) => {
@@ -547,11 +565,11 @@ async function openProfile(uid) {
   if (!gid) return;
   const { data: p, error } = await sb.rpc('get_member_profile', { p_group: gid, p_user: uid });
   if (error) return toast('⚠️ ' + error.message);
-  curUid = uid; prof[uid] = { ...(prof[uid] || {}), id: uid, name: p.name, avatar_url: p.avatar_url };
-  const shown = p.custom_display_name || p.name, adm = p.role === 'admin', sup = isSuper() && uid !== user.id;
-  $('#uBody').innerHTML = `<div style="text-align:center">${av(uid, p.name, 'xl')}
+  const pname = p.name || prof[uid]?.name || 'Utilisateur'; curUid = uid; prof[uid] = { ...(prof[uid] || {}), id: uid, name: pname, avatar_url: p.avatar_url };
+  const shown = p.custom_display_name || pname, adm = p.role === 'admin', sup = isSuper() && uid !== user.id;
+  $('#uBody').innerHTML = `<div style="text-align:center">${av(uid, pname, 'xl')}
     <h2 style="margin:10px 0 2px;font-size:1.3rem">${esc(shown)}</h2>
-    ${p.custom_display_name && p.custom_display_name !== p.name ? `<div class="mu">Pseudo : ${esc(p.name)}</div>` : ''}
+    ${p.custom_display_name && p.custom_display_name !== pname ? `<div class="mu">Pseudo : ${esc(pname)}</div>` : ''}
     <span class="role ${adm ? '' : 'mb'}" style="display:inline-block;margin-top:6px">${adm ? '👑 Admin' : 'Membre'}</span></div>
     <div style="margin:12px 0">
       <div class="info"><span>✉️ Email</span><b>${p.email ? esc(p.email) : 'Non partagé'}</b></div>
@@ -559,7 +577,7 @@ async function openProfile(uid) {
     ${uid !== user.id ? '<button id="uDm" class="full">💬 Envoyer un message privé</button>' : ''}
     ${sup ? `<div class="card" style="margin:14px 0 0"><h2>🛡️ Modération Super-Admin</h2>
       <p class="mu">Application : ${stat(p.is_banned_definitively, p.banned_until)}<br>Ce groupe : ${stat(p.group_banned_definitively, p.group_banned_until)}</p>
-      <input id="sName" type="text" placeholder="Nom / pseudo d’affichage" value="${esc(p.name)}">
+      <input id="sName" type="text" placeholder="Nom / pseudo d’affichage" value="${esc(pname)}">
       <input id="sAv" type="text" placeholder="Photo : emoji ou https://…" value="${esc(p.avatar_url || '')}">
       <button id="sSave" class="full sec">Modifier les infos</button>
       <input id="sHrs" class="sbtn" type="text" inputmode="decimal" placeholder="Ban temporaire : durée en heures (ex : 24)">
