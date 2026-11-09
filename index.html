@@ -262,7 +262,7 @@ async function loadProfiles(ids) {
   (data || []).forEach((p) => { prof[p.id] = p; delete missAt[p.id]; });
 }
 const myName = () => user?.user_metadata?.name || 'Anonyme';
-const dbg = () => ($('#dbg').textContent = 'v14 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun') + ' · IA : ' + aiState);
+const dbg = () => ($('#dbg').textContent = 'v15 · groupe : ' + (gid ? gid.slice(0, 8) : 'aucun') + ' · IA : ' + aiState + ' · MP direct : ' + (rt.dm === 'SUBSCRIBED' ? 'ok' : rt.dm || '…'));
 
 // ---------- THÈME & SON ----------
 const root = document.documentElement;
@@ -310,7 +310,8 @@ $('#out').onclick = async () => {
     if (sub) await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint); } catch (_) {}
   sb.auth.signOut();
 };
-sb.auth.onAuthStateChange((_ev, session) => {
+sb.auth.onAuthStateChange((ev, session) => {
+  if (session?.access_token && (ev === 'TOKEN_REFRESHED' || ev === 'SIGNED_IN')) { try { sb.realtime.setAuth(session.access_token); } catch (_) {} }
   const u = session?.user || null;
   if ((u?.id || null) === (user?.id || null) && user !== undefined) { user = u; return; }
   user = u; setTimeout(onUser, 0);
@@ -345,19 +346,37 @@ async function purgeOld() {
   } catch (e) { console.warn('Nettoyage :', e); }
 }
 function onUser() {
-  if (chan) { sb.removeChannel(chan); chan = null; }
+  stopRealtime();
   if (!user) { show('#app', false); show('#auth', true); return; }
-  show('#auth', false); show('#app', true); loadGroups(); initPush(); loadDms(); purgeOld();
+  show('#auth', false); show('#app', true); loadGroups(); initPush(); dmReady = false; dmKnown.clear(); loadDms(); purgeOld();
   ensureProfile().then(() => { delete prof[user.id]; return loadProfiles([user.id]); }).then(() => { applyBan(); setHead(); render(); refreshRoster(); });
-  chan = sb.channel('live')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'items' }, onInsert)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'group_members' }, () => refreshRoster())
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'private_messages' }, onDm)
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'private_messages' }, () => loadDms())
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'items' }, load)
-    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'items' }, load)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'item_views' }, load)
-    .subscribe();
+  startRealtime();
+}
+// ---------- TEMPS RÉEL : canaux séparés, jeton de l'utilisateur, reconnexion automatique ----------
+const rt = {}; let rtChans = [], rtTimer = null, dmPoll = null;
+function stopRealtime() { clearTimeout(rtTimer); clearInterval(dmPoll); rtChans.forEach((c) => sb.removeChannel(c)); rtChans = []; }
+function rtRetry() { clearTimeout(rtTimer); rtTimer = setTimeout(() => { if (user) startRealtime(); }, 5000); }
+async function startRealtime() {
+  stopRealtime();
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session || !user) return;
+  sb.realtime.setAuth(session.access_token);   // sans le jeton, la RLS masque TOUS les événements au destinataire
+  const open = (name, binds) => {                // un canal par usage : une erreur sur l'un n'invalide plus les autres
+    const c = sb.channel(`${name}-${user.id.slice(0, 8)}-${Date.now() % 1e5}`);
+    binds.forEach(([event, table, fn]) => c.on('postgres_changes', { event, schema: 'public', table }, fn));
+    c.subscribe((status, err) => {
+      rt[name] = status; dbg();
+      if (err) console.warn(`Temps réel « ${name} » :`, status, err.message || err);
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') rtRetry();
+      if (status === 'SUBSCRIBED' && name === 'dm') loadDms();   // rattrape les messages arrivés avant la connexion
+    });
+    rtChans.push(c);
+  };
+  open('dm', [['INSERT', 'private_messages', () => loadDms()], ['UPDATE', 'private_messages', () => loadDms()], ['DELETE', 'private_messages', () => loadDms()]]);
+  open('items', [['INSERT', 'items', onInsert], ['UPDATE', 'items', load], ['DELETE', 'items', load]]);
+  open('group', [['*', 'group_members', () => refreshRoster()], ['*', 'item_views', load]]);
+  // Filet de sécurité : si le direct est coupé, les MP arrivent quand même (toutes les 6 s, application visible ou fenêtre MP ouverte)
+  dmPoll = setInterval(() => { if (!document.hidden && (rt.dm !== 'SUBSCRIBED' || $('#dsheet').classList.contains('open'))) loadDms(); }, 6000);
 }
 // Un autre membre ajoute un article -> vibration + son
 function onInsert(p) {
@@ -711,14 +730,19 @@ function renderMembers() {
   $('#mList').innerHTML = [...roster].sort((a, b) => (b.role === 'admin') - (a.role === 'admin') || nm(a.user_id).localeCompare(nm(b.user_id))).map((m) => {
     const b = isBannedRow(m), real = prof[m.user_id]?.name, self = m.user_id === user.id;
     const until = b && !m.is_banned_definitively ? ' jusqu’au ' + new Date(m.banned_until).toLocaleString('fr-FR') : '';
-    const ctl = adm && !self ? `<div class="mc"><button class="ren">✏️ Renommer</button>${b ? '<button class="unban">✅ Débannir</button>' : '<button class="ban">🚫 Bannir</button>'}${m.role !== 'admin' ? '<button class="promo">👑 Promouvoir</button>' : ''}</div>` : '';
+    const sup = isSuper(), tAdm = m.role === 'admin';   // l'interface masque les boutons ; la base de données refuse de toute façon
+    const ctl = adm && !self ? `<div class="mc"><button class="ren">✏️ Renommer</button>${tAdm && !sup ? '' : (b ? '<button class="unban">✅ Débannir</button>' : '<button class="ban">🚫 Bannir</button>')}${!tAdm ? '<button class="promo">👑 Promouvoir</button>' : ''}${tAdm && sup ? '<button class="demo">⬇️ Retirer admin</button>' : ''}</div>` : '';
     return `<div class="mem" data-u="${m.user_id}">${av(m.user_id)}<div class="n">${esc(nm(m.user_id))}${self ? ' (vous)' : ''}${m.custom_display_name && real ? `<small>Pseudo : ${esc(real)}</small>` : ''}${b ? `<small class="bn">🚫 Banni${until}</small>` : ''}</div>${m.role === 'admin' ? '<span class="role">👑 Admin</span>' : '<span class="role mb">Membre</span>'}${ctl}</div>`;
   }).join('');
 }
 $('#mList').onclick = async (e) => {
   const b = e.target.closest('button'); if (!b) return; const u = b.closest('.mem').dataset.u, c = b.classList; let r;
   if (c.contains('promo')) r = await sb.rpc('set_member_role', { p_group: gid, p_user: u, p_role: 'admin' });
-  else if (c.contains('ren')) {
+  else if (c.contains('demo')) {
+    if (!isSuper()) return toast('⚠️ Seul le super-administrateur peut retirer le rôle d’administrateur');
+    if (!confirm('Retirer le rôle d’administrateur à ce membre ?')) return;
+    r = await sb.rpc('set_member_role', { p_group: gid, p_user: u, p_role: 'member' });
+  } else if (c.contains('ren')) {
     const n = prompt("Nom affiché dans ce groupe (vide = nom d'origine) :", roster.find((m) => m.user_id === u)?.custom_display_name || ''); if (n === null) return;
     r = await sb.rpc('rename_member', { p_group: gid, p_user: u, p_name: n });
   } else if (c.contains('ban')) {
@@ -782,6 +806,7 @@ async function openProfile(uid) {
       <label class="chk"><input id="sLife" type="checkbox"> Bannir à vie</label>
       <button id="sBan" class="full red sbtn">🚫 Appliquer le ban</button>
       <button id="sUnban" class="full sec sbtn">✅ Débannir</button>
+      ${adm ? '<button id="sDemote" class="full sec sbtn">⬇️ Retirer le rôle d’administrateur</button>' : ''}
       <button id="sKick" class="full sec sbtn">🚪 Exclure du groupe</button></div>` : ''}`;
   sheet(true, '#umodal');
 }
@@ -800,7 +825,10 @@ $('#uBody').onclick = async (e) => {
     if (!life) { if (dv) until = new Date(dv).toISOString(); else if (hrs > 0) until = new Date(Date.now() + hrs * 3600e3).toISOString(); else return toast('Indiquez une durée, une date de fin ou « Bannir à vie »'); }
     done(await sb.rpc('super_set_ban', { p_user: uid, p_until: until, p_permanent: life }), life ? '🚫 Banni à vie' : '⏳ Ban appliqué');
   } else if (b.id === 'sUnban') done(await sb.rpc('super_unban', { p_user: uid }), '✅ Membre débanni');
-  else if (b.id === 'sKick') {
+  else if (b.id === 'sDemote') {
+    if (!confirm('Retirer le rôle d’administrateur à ce membre ?')) return;
+    done(await sb.rpc('set_member_role', { p_group: gid, p_user: uid, p_role: 'member' }), '⬇️ Rôle d’administrateur retiré');
+  } else if (b.id === 'sKick') {
     if (!confirm('Exclure ce membre du groupe ?')) return;
     const r = await sb.rpc('super_kick', { p_group: gid, p_user: uid });
     if (r.error) return toast('⚠️ ' + r.error.message);
@@ -817,10 +845,19 @@ const dmOthers = () => {
     if (!m.has(o)) m.set(o, { id: o, last: x, unread: 0 }); if (x.recipient_id === user.id && !x.read_at) m.get(o).unread++; }
   return [...m.values()];
 };
+let dmReady = false; const dmKnown = new Set();
 async function loadDms() {
+  // Colonnes réelles de la table : sender_id (expéditeur) et recipient_id (destinataire)
   const { data, error } = await sb.from('private_messages').select('*').or(`sender_id.eq.${user.id},recipient_id.eq.${user.id}`).order('created_at', { ascending: false }).limit(500);
-  if (error) return console.warn('MP :', error.message);
-  dms = data || []; await loadProfiles(dmOthers().map((x) => x.id)); renderDmList(); renderChat();
+  if (error) return console.warn('MP illisibles :', error.message);
+  const fresh = (data || []).filter((x) => x.recipient_id === user.id && !x.deleted_at && !dmKnown.has(x.id));
+  (data || []).forEach((x) => dmKnown.add(x.id));
+  dms = data || []; await loadProfiles(dmOthers().map((x) => x.id));
+  if (dmReady && fresh.length) {                 // nouveau message reçu : vibration + son + bandeau
+    const n = fresh[0]; buzz(false);
+    if (!($('#dsheet').classList.contains('open') && dmWith === n.sender_id)) toast(`💬 ${nm(n.sender_id, 'Membre')} : ${n.body}`);
+  }
+  dmReady = true; renderDmList(); renderChat();
 }
 function renderDmList() {
   const c = dmOthers(), unread = c.reduce((n, x) => n + x.unread, 0);
@@ -881,15 +918,6 @@ $('#dForm').addEventListener('submit', async (e) => {
   if (error) { $('#dText').value = t; return fail('Envoi impossible : ' + error.message, error); }
   loadDms();
 });
-async function onDm(p) {
-  const n = p.new;
-  if (n.recipient_id === user.id) {
-    await loadProfiles([n.sender_id]); buzz(false);
-    if (!($('#dsheet').classList.contains('open') && dmWith === n.sender_id)) toast(`💬 ${nm(n.sender_id, 'Membre')} : ${n.body}`);
-  }
-  loadDms();
-}
-
 // "Vu par" : on enregistre les articles affichés à l'écran
 async function markSeen() {
   if (document.visibilityState !== 'visible' || !gid || banned()) return;
@@ -900,7 +928,7 @@ async function markSeen() {
   const { error } = await sb.from('item_views').upsert(rows, { onConflict: 'item_id,user_id', ignoreDuplicates: true });
   if (error) console.error('Vu par :', error);
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { load(); refreshRoster(); delete prof[user.id]; loadProfiles([user.id]).then(applyBan); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { load(); refreshRoster(); loadDms(); delete prof[user.id]; loadProfiles([user.id]).then(applyBan); } });
 
 // ---------- AJOUT (envoi optimiste : ✓ gris -> ✓✓ vert) ----------
 // Étape 3 : enregistrement. Si les colonnes IA n'existent pas encore, l'article est enregistré sans elles.
