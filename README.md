@@ -73,3 +73,6 @@ La clé est dans `config.js` (champ `groqKey`). Pour la retirer/renouveler : mod
 
 ## v14 : liste unique + nettoyage automatique
 SQL Editor -> `supabase/update_v14.sql` -> Run. Articles non cochés en haut (urgents d'abord), « Articles achetés » en bas, suppression des articles cochés depuis plus d'un mois (pg_cron chaque nuit + nettoyage par l'application une fois par jour).
+
+## v15 : rôles + MP en direct
+SQL Editor -> `supabase/update_v15.sql` -> Run (rapport final : tout ok = true). Seul le Super-Admin retire le rôle admin. Les MP utilisent des canaux Realtime séparés avec le jeton de l'utilisateur, une reconnexion automatique et un rattrapage toutes les 6 s.
