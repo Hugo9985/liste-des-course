@@ -65,3 +65,11 @@ Sans IA (clé absente, hors ligne, délai dépassé) l'app retombe sur Open Food
 
 ## v12 : clé Groq intégrée
 La clé est dans `config.js` (champ `groqKey`). Pour la retirer/renouveler : modifiez ou supprimez cette ligne ; sans clé l'app utilise la fonction Edge `classify-item`, puis le dictionnaire local.
+
+## v13 : correctifs console
+- Groq 404 : `llama-3.1-8b-instant` est arrêté depuis le 16/08/2026 -> modèle `openai/gpt-oss-20b` (secours `openai/gpt-oss-120b`). L'état de l'IA s'affiche en bas de la liste.
+- Open Food Facts : limiteur (8 recherches/min), cache local 7 jours, pause 60 s après erreur 429/5xx, aucun blocage de l'ajout.
+- Ajout d'article : IA, puis image, puis enregistrement, chacun isolé par son try/catch. Colonnes manquantes -> enregistrement sans catégorie + conseil `verify_v11.sql`.
+
+## v14 : liste unique + nettoyage automatique
+SQL Editor -> `supabase/update_v14.sql` -> Run. Articles non cochés en haut (urgents d'abord), « Articles achetés » en bas, suppression des articles cochés depuis plus d'un mois (pg_cron chaque nuit + nettoyage par l'application une fois par jour).
