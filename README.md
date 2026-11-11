@@ -76,3 +76,8 @@ SQL Editor -> `supabase/update_v14.sql` -> Run. Articles non cochés en haut (ur
 
 ## v15 : rôles + MP en direct
 SQL Editor -> `supabase/update_v15.sql` -> Run (rapport final : tout ok = true). Seul le Super-Admin retire le rôle admin. Les MP utilisent des canaux Realtime séparés avec le jeton de l'utilisateur, une reconnexion automatique et un rattrapage toutes les 6 s.
+
+## v16 : lecture MP persistante, images validées, mode hors-ligne
+1. SQL Editor -> `supabase/update_v16.sql` -> Run (rapport : tout ok = true).
+2. Redéployer la fonction IA si vous l'utilisez : `supabase functions deploy classify-item --no-verify-jwt`.
+3. Redéployer le dossier ; ouvrir l'app UNE fois en ligne (le service worker prépare le cache), puis couper le réseau pour tester.
